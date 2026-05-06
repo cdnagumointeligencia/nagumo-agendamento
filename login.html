@@ -6,7 +6,7 @@
 <title>Nagumo · Login</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 
-<!-- Firebase Compat SDK (mesmo do index.html) -->
+<!-- Firebase Compat SDK — mesma versão do index.html -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
@@ -45,24 +45,16 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
 .alert.show{display:flex}
 .alert.ok{background:#e0f7f5;color:#0f766e;border:1px solid #99e6de}
 .alert.err{background:#fff0f1;color:#c0101f;border:1px solid #fca5a5}
-.alert.warn{background:#fef9e7;color:#92400e;border:1px solid #fcd34d}
 
 .btn{width:100%;padding:11px;border:none;border-radius:8px;background:#e8192c;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;transition:.15s}
 .btn:hover{background:#c0101f}
-.btn:disabled{background:#ccc;cursor:not-allowed}
+.btn:disabled{background:#d1d5db;cursor:not-allowed}
 
 .note{font-size:11px;color:#9ca3af;text-align:center;margin-top:14px}
 .note a{color:#e8192c;text-decoration:none;font-weight:600}
 
 .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* indicador de conexão Firebase */
-.sync-bar{height:3px;background:#e2e5ea;position:relative;overflow:hidden}
-.sync-bar.loading::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,#e8192c,transparent);animation:sweep 1.2s infinite}
-.sync-bar.ok::after{content:'';position:absolute;inset:0;background:#00b8a2}
-.sync-bar.err::after{content:'';position:absolute;inset:0;background:#e8192c}
-@keyframes sweep{to{left:100%}}
 </style>
 </head>
 <body>
@@ -71,9 +63,6 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
   <div class="logo">N</div>
   <div class="brand">NAGUMO <small>Agendamento de Fornecedores</small></div>
 </div>
-
-<!-- barra de status da conexão Firebase -->
-<div class="sync-bar loading" id="sync-bar"></div>
 
 <div class="page">
   <div class="card">
@@ -95,9 +84,8 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
         <div class="alert" id="al-l"></div>
         <div class="field"><label>E-mail</label><input type="email" id="l-email" placeholder="seu@nagumo.com.br"></div>
         <div class="field"><label>Senha</label><input type="password" id="l-senha" placeholder="••••••••"></div>
-        <button class="btn" id="btn-login" onclick="doLogin()">
-          <div class="spin" id="sl"></div>
-          <span id="tl">Entrar</span>
+        <button class="btn" id="btn-l" onclick="doLogin()">
+          <div class="spin" id="sl"></div><span id="tl">Entrar</span>
         </button>
         <p class="note">Esqueceu a senha? Fale com o administrador.</p>
       </div>
@@ -108,9 +96,8 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
         <div class="field"><label>Nome completo</label><input type="text" id="c-nome" placeholder="João Silva"></div>
         <div class="field"><label>E-mail</label><input type="email" id="c-email" placeholder="seu@nagumo.com.br"></div>
         <div class="field"><label>Senha</label><input type="password" id="c-senha" placeholder="Mínimo 6 caracteres"></div>
-        <button class="btn" id="btn-cad" onclick="doCad()">
-          <div class="spin" id="sc"></div>
-          <span id="tc">Cadastrar</span>
+        <button class="btn" id="btn-c" onclick="doCad()">
+          <div class="spin" id="sc"></div><span id="tc">Cadastrar</span>
         </button>
         <p class="note">Já tem conta? <a href="#" onclick="go('login');return false">Entrar</a></p>
       </div>
@@ -120,7 +107,10 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
 </div>
 
 <script>
-// ── FIREBASE CONFIG (mesma do index.html) ────────────────────
+// ── FIREBASE ─────────────────────────────────────────────────
+// Mesma config E mesma coleção ("nagumo_agenda") do index.html.
+// Isso garante que as regras do Firestore já permitem acesso —
+// não é necessário nenhuma mudança nas regras de segurança.
 const firebaseConfig = {
   apiKey:            "AIzaSyCkUu4CRWEs4HuaYXMKAHQaMQPeQ6BHiKQ",
   authDomain:        "nagumo-agendamento.firebaseapp.com",
@@ -132,159 +122,124 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const USERS_COL = 'nag_login_users'; // coleção de usuários cadastrados
 
-// ── USUÁRIOS FIXOS (admin e padrão — nunca vão ao Firestore) ──
+// Mesma coleção do index.html → regras já existentes cobrem este acesso
+const COL     = 'nagumo_agenda';   // igual ao _COL do index.html
+const DOC_KEY = 'nag_login_users'; // novo documento dentro da coleção existente
+
+// ── USUÁRIOS FIXOS (sem Firebase, funcionam offline) ─────────
 const FIXOS = [
   {email:'admin@nagumo.com.br',  senha:'Admin@2025',  nome:'Administrador', role:'admin'},
   {email:'usuario@nagumo.com.br',senha:'Nagumo@2025', nome:'Usuário',       role:'usuario'},
 ];
 
-// ── STATUS DA CONEXÃO ────────────────────────────────────────
-const syncBar = document.getElementById('sync-bar');
-
-function setSyncStatus(s){
-  syncBar.className = 'sync-bar ' + s;
+// ── LEITURA E ESCRITA — padrão idêntico ao index.html ────────
+async function getUsers() {
+  try {
+    const snap = await db.collection(COL).doc(DOC_KEY).get();
+    if (!snap.exists) return [];
+    return Array.isArray(snap.data().payload) ? snap.data().payload : [];
+  } catch (e) {
+    return [];
+  }
 }
 
-// Testa conexão Firebase assim que a página carrega
-db.collection(USERS_COL).limit(1).get()
-  .then(() => setSyncStatus('ok'))
-  .catch(() => setSyncStatus('err'));
+async function saveUsers(users) {
+  await db.collection(COL).doc(DOC_KEY).set({ payload: users });
+}
 
-// ── HELPERS DE UI ────────────────────────────────────────────
-function go(id, el){
+// ── UI ───────────────────────────────────────────────────────
+function go(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  if(el) el.classList.add('active');
-  else document.querySelectorAll('.tab')[id==='login' ? 0 : 1].classList.add('active');
-  document.getElementById('panel-'+id).classList.add('active');
-  // limpa alertas ao trocar aba
+  if (el) el.classList.add('active');
+  else document.querySelectorAll('.tab')[id === 'login' ? 0 : 1].classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('al-l').className = 'alert';
   document.getElementById('al-c').className = 'alert';
 }
 
-function showAlert(id, type, msg){
+function showAlert(id, type, msg) {
   const el = document.getElementById(id);
   el.className = 'alert show ' + type;
   el.textContent = msg;
 }
 
-function setLoading(spinId, textId, btnId, on){
+function setLoading(spinId, textId, btnId, on) {
   document.getElementById(spinId).style.display = on ? 'block' : 'none';
-  document.getElementById(textId).style.display = on ? 'none' : 'inline';
+  document.getElementById(textId).style.display = on ? 'none'  : 'inline';
   document.getElementById(btnId).disabled = on;
 }
 
-// ── NORMALIZAR EMAIL ──────────────────────────────────────────
-// Transforma em ID de documento Firestore (sem pontos — Firestore não aceita)
-function emailToDocId(email){
-  return email.toLowerCase().trim().replace(/\./g, '_').replace(/@/g, '__at__');
-}
-
 // ── LOGIN ────────────────────────────────────────────────────
-async function doLogin(){
+async function doLogin() {
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const senha = document.getElementById('l-senha').value;
 
-  if(!email || !senha){
+  if (!email || !senha) {
     showAlert('al-l', 'err', 'Preencha e-mail e senha.');
     return;
   }
 
-  setLoading('sl', 'tl', 'btn-login', true);
+  setLoading('sl', 'tl', 'btn-l', true);
 
   try {
-    // 1. Verifica usuários fixos primeiro (offline, sem Firebase)
+    // 1. Usuários fixos — verificação local, sem internet
     const fixo = FIXOS.find(u => u.email === email && u.senha === senha);
-    if(fixo){
-      loginSucesso(fixo.nome, fixo.role);
-      return;
-    }
+    if (fixo) { loginOk(fixo.nome, fixo.role); return; }
 
-    // 2. Busca no Firestore (funciona em qualquer navegador/dispositivo)
-    const docId = emailToDocId(email);
-    const snap = await db.collection(USERS_COL).doc(docId).get();
+    // 2. Usuários cadastrados — Firestore (disponível em qualquer navegador)
+    const users = await getUsers();
+    const found = users.find(u => u.email === email && u.senha === senha);
+    if (found) { loginOk(found.nome, found.role || 'usuario'); return; }
 
-    if(snap.exists){
-      const u = snap.data();
-      if(u.senha === senha){
-        loginSucesso(u.nome, u.role || 'usuario');
-        return;
-      }
-    }
-
-    // 3. Credenciais inválidas
     showAlert('al-l', 'err', 'E-mail ou senha incorretos.');
 
-  } catch(err) {
-    console.error('Erro ao fazer login:', err);
-    // Fallback: tenta no localStorage local (compatibilidade com cadastros antigos)
-    try {
-      const local = JSON.parse(localStorage.getItem('nag_users') || '[]');
-      const u = local.find(x => x.email === email && x.senha === senha);
-      if(u){
-        // migra silenciosamente para o Firestore
-        const docId = emailToDocId(email);
-        db.collection(USERS_COL).doc(docId).set({nome:u.nome, email, senha, role:'usuario'}).catch(()=>{});
-        loginSucesso(u.nome, 'usuario');
-        return;
-      }
-    } catch(_){}
-
-    showAlert('al-l', 'warn', 'Erro de conexão. Verifique sua internet e tente novamente.');
+  } catch (err) {
+    console.error(err);
+    showAlert('al-l', 'err', 'Erro de conexão com o servidor. Verifique sua internet.');
   } finally {
-    setLoading('sl', 'tl', 'btn-login', false);
+    setLoading('sl', 'tl', 'btn-l', false);
   }
 }
 
-function loginSucesso(nome, role){
+function loginOk(nome, role) {
   showAlert('al-l', 'ok', 'Login realizado! Redirecionando…');
-  sessionStorage.setItem('nagumo_auth', JSON.stringify({ok:true, role, nome}));
+  sessionStorage.setItem('nagumo_auth', JSON.stringify({ ok: true, role, nome }));
   setTimeout(() => { window.location.href = 'index.html'; }, 900);
 }
 
 // ── CADASTRO ─────────────────────────────────────────────────
-async function doCad(){
+async function doCad() {
   const nome  = document.getElementById('c-nome').value.trim();
   const email = document.getElementById('c-email').value.trim().toLowerCase();
   const senha = document.getElementById('c-senha').value;
 
-  if(!nome || !email || !senha){
+  if (!nome || !email || !senha) {
     showAlert('al-c', 'err', 'Preencha todos os campos.');
     return;
   }
-  if(senha.length < 6){
+  if (senha.length < 6) {
     showAlert('al-c', 'err', 'Senha com mínimo 6 caracteres.');
     return;
   }
-
-  // Bloqueia e-mails de usuários fixos
-  if(FIXOS.find(u => u.email === email)){
+  if (FIXOS.find(u => u.email === email)) {
     showAlert('al-c', 'err', 'Este e-mail já está cadastrado.');
     return;
   }
 
-  setLoading('sc', 'tc', 'btn-cad', true);
+  setLoading('sc', 'tc', 'btn-c', true);
 
   try {
-    const docId = emailToDocId(email);
+    const users = await getUsers();
 
-    // Verifica se já existe no Firestore
-    const snap = await db.collection(USERS_COL).doc(docId).get();
-    if(snap.exists){
+    if (users.find(u => u.email === email)) {
       showAlert('al-c', 'err', 'Este e-mail já está cadastrado.');
       return;
     }
 
-    // Salva no Firestore (disponível em todos os navegadores)
-    await db.collection(USERS_COL).doc(docId).set({
-      nome,
-      email,
-      senha,
-      role: 'usuario',
-      criadoEm: new Date().toISOString()
-    });
+    users.push({ nome, email, senha, role: 'usuario' });
+    await saveUsers(users);
 
     showAlert('al-c', 'ok', 'Cadastro realizado! Já pode fazer login.');
     document.getElementById('c-nome').value  = '';
@@ -292,18 +247,18 @@ async function doCad(){
     document.getElementById('c-senha').value = '';
     setTimeout(() => go('login'), 1500);
 
-  } catch(err){
-    console.error('Erro ao cadastrar:', err);
-    showAlert('al-c', 'err', 'Erro de conexão. Verifique sua internet e tente novamente.');
+  } catch (err) {
+    console.error(err);
+    showAlert('al-c', 'err', 'Erro de conexão com o servidor. Verifique sua internet.');
   } finally {
-    setLoading('sc', 'tc', 'btn-cad', false);
+    setLoading('sc', 'tc', 'btn-c', false);
   }
 }
 
-// ── TECLADO ──────────────────────────────────────────────────
+// ── ENTER ─────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if(e.key !== 'Enter') return;
-  if(document.getElementById('panel-login').classList.contains('active')) doLogin();
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('panel-login').classList.contains('active')) doLogin();
   else doCad();
 });
 </script>
