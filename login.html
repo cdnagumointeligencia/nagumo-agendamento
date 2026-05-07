@@ -4,103 +4,350 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nagumo · Login</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
 
-<!-- Firebase Compat SDK (mesma versão do index.html) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
+/* ── TOKENS ── */
+:root {
+  --navy:    #031F3E;
+  --teal:    #3AC4D4;
+  --teal-dk: #28a8b5;
+  --teal-lt: #e8f9fb;
+  --red:     #CD0036;
+  --red-dk:  #a8002b;
+  --red-lt:  #fff0f3;
+  --snow:    #F7F7F7;
+  --white:   #ffffff;
+  --mid:     #e2e8f0;
+  --muted:   #64748b;
+  --label:   #334155;
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px}
 
-.card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:380px;overflow:hidden}
+body {
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background-color: var(--navy);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(58,196,212,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(205,0,54,.08) 0%, transparent 55%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,.013) 40px,
+      rgba(255,255,255,.013) 41px
+    );
+}
 
-.card-top{background:linear-gradient(135deg,#0d1b2e,#162338);padding:28px 24px 22px;text-align:center}
-.card-logo{width:40px;height:40px;background:#e8192c;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;margin-bottom:12px}
-.card-top h1{font-size:18px;font-weight:700;color:#fff;margin-bottom:3px}
-.card-top p{font-size:12px;color:rgba(255,255,255,.45)}
+/* ── CARD ── */
+.card {
+  background: var(--white);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(58,196,212,.18),
+    0 24px 64px rgba(3,31,62,.55),
+    0 8px 24px rgba(0,0,0,.25);
+  animation: fadeUp .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(22px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 
-.tabs{display:flex;border-bottom:1px solid #e2e5ea}
-.tab{flex:1;padding:12px;background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:#9ca3af;cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
-.tab.active{color:#e8192c;border-bottom-color:#e8192c}
+/* ── CABEÇALHO ── */
+.card-head {
+  background: linear-gradient(145deg, #031F3E 0%, #052a54 55%, #073265 100%);
+  padding: 32px 28px 26px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.card-head::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(58,196,212,.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.card-head::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--teal) 0%, var(--red) 100%);
+}
 
-.body{padding:20px 24px 24px}
-.panel{display:none}
-.panel.active{display:block}
+.logo-mark {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--red) 0%, #a8002b 100%);
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--white);
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(205,0,54,.45);
+  letter-spacing: -1px;
+}
+.card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 4px;
+  letter-spacing: -.3px;
+}
+.card-sub {
+  font-size: 11.5px;
+  color: rgba(255,255,255,.45);
+  letter-spacing: .4px;
+}
+.card-sub span {
+  color: var(--teal);
+  font-weight: 600;
+}
 
-.field{margin-bottom:12px}
-.field label{display:block;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
-.field input{width:100%;padding:10px 11px;border:1.5px solid #e2e5ea;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:#0d1b2e;outline:none;transition:border-color .15s}
-.field input:focus{border-color:#e8192c}
-.field input::placeholder{color:#c0c4cc}
+/* ── ABAS ── */
+.tabs {
+  display: flex;
+  background: var(--snow);
+  border-bottom: 2px solid var(--mid);
+}
+.tab {
+  flex: 1;
+  padding: 13px 12px;
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .2s, border-color .2s;
+  letter-spacing: .2px;
+}
+.tab.active {
+  color: var(--red);
+  border-bottom-color: var(--red);
+  background: var(--white);
+}
+.tab:not(.active):hover { color: var(--navy); }
 
-.pass-wrap{position:relative;display:flex;align-items:center}
-.pass-wrap input{padding-right:38px}
-.eye-btn{position:absolute;right:11px;cursor:pointer;color:#c0c4cc;display:flex;align-items:center;user-select:none;transition:color .15s}
-.eye-btn:hover{color:#e8192c}
+/* ── CORPO ── */
+.body { padding: 24px 28px 28px; }
+.panel { display: none; }
+.panel.active { display: block; }
 
-.alert{display:none;align-items:center;gap:7px;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:12px}
-.alert.show{display:flex}
-.alert.ok{background:#e0f7f5;color:#0f766e;border:1px solid #99e6de}
-.alert.err{background:#fff0f1;color:#c0101f;border:1px solid #fca5a5}
+/* ── CAMPO ── */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 5px;
+}
+.field input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--mid);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  color: var(--navy);
+  background: var(--snow);
+  outline: none;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.field input:focus {
+  border-color: var(--teal);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(58,196,212,.14);
+}
+.field input::placeholder { color: #94a3b8; }
 
-.btn{width:100%;padding:11px;border:none;border-radius:8px;background:#e8192c;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;transition:.15s}
-.btn:hover:not(:disabled){background:#c0101f}
-.btn:disabled{opacity:.6;cursor:not-allowed}
+.pass-wrap { position: relative; display: flex; align-items: center; }
+.pass-wrap input { padding-right: 42px; }
+.eye-btn {
+  position: absolute; right: 12px;
+  cursor: pointer; color: #94a3b8;
+  display: flex; align-items: center;
+  user-select: none;
+  transition: color .18s;
+}
+.eye-btn:hover { color: var(--teal); }
 
-.note{font-size:11px;color:#9ca3af;text-align:center;margin-top:14px}
-.note a{color:#e8192c;text-decoration:none;font-weight:600;cursor:pointer}
+/* ── ALERTAS ── */
+.alert {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+.alert.show { display: flex; }
+.alert.ok  { background: var(--teal-lt); color: #0e6e78; border: 1px solid rgba(58,196,212,.35); }
+.alert.err { background: var(--red-lt);  color: #9b0028; border: 1px solid rgba(205,0,54,.25); }
 
-.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── BOTÃO ── */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-dk) 100%);
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 6px;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 14px rgba(205,0,54,.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(205,0,54,.45);
+}
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
 
-.loading-overlay{position:fixed;inset:0;background:rgba(13,27,46,.55);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px)}
-.loading-overlay.hidden{display:none}
-.loading-box{background:#fff;border-radius:12px;padding:24px 32px;text-align:center;font-size:13px;color:#0d1b2e;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:10px}
-.loading-spin{width:22px;height:22px;border:3px solid #e2e5ea;border-top-color:#e8192c;border-radius:50%;animation:spin .7s linear infinite}
+/* ── NOTA ── */
+.note {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 16px;
+}
+.note a {
+  color: var(--teal-dk);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.note a:hover { text-decoration: underline; }
+
+/* ── SPINNER ── */
+.spin {
+  width: 15px; height: 15px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── OVERLAY DE LOADING ── */
+.ov {
+  position: fixed; inset: 0;
+  background: rgba(3,31,62,.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+.ov.hidden { display: none; }
+.ov-box {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 26px 36px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  font-size: 13px; font-weight: 600; color: var(--navy);
+  box-shadow: 0 16px 48px rgba(3,31,62,.4);
+}
+.ov-spin {
+  width: 26px; height: 26px;
+  border: 3px solid var(--mid);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ── SEPARADOR VISUAL entre login/senha ── */
+.divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0 14px;
+  color: #cbd5e1; font-size: 11px;
+}
+.divider::before,.divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--mid);
+}
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loading-overlay">
-  <div class="loading-box">
-    <div class="loading-spin"></div>
+<!-- Overlay inicial -->
+<div class="ov" id="ov">
+  <div class="ov-box">
+    <div class="ov-spin"></div>
     Verificando acesso…
   </div>
 </div>
 
 <div class="card">
 
-  <div class="card-top">
-    <div class="card-logo">N</div>
-    <h1>Acesso ao sistema</h1>
-    <p>Nagumo · Agendamento de Fornecedores</p>
+  <!-- Cabeçalho -->
+  <div class="card-head">
+    <div class="logo-mark">N</div>
+    <div class="card-title">Agendamento de Fornecedores</div>
   </div>
 
+  <!-- Abas -->
   <div class="tabs">
     <button class="tab active" id="tab-login"    onclick="go('login',this)">Entrar</button>
-    <button class="tab"        id="tab-cadastro" onclick="go('cadastro',this)">Cadastrar</button>
+    <button class="tab"        id="tab-cadastro" onclick="go('cadastro',this)">Novo acesso</button>
   </div>
 
   <div class="body">
 
-    <!-- LOGIN -->
+    <!-- ── LOGIN ── -->
     <div class="panel active" id="panel-login">
       <div class="alert" id="al-l"></div>
+
       <div class="field">
         <label>E-mail</label>
         <input type="email" id="l-email" placeholder="seu@nagumo.com.br" autocomplete="off">
       </div>
+
       <div class="field">
         <label>Senha</label>
         <div class="pass-wrap">
           <input type="password" id="l-senha" placeholder="••••••••">
-          <span class="eye-btn" onclick="toggleEye('l-senha',this)" title="Mostrar senha">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="eye-btn" onclick="toggleEye('l-senha',this)" title="Mostrar/ocultar">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
       </div>
+
       <button class="btn" id="btn-login" onclick="doLogin()">
         <div class="spin" id="sl"></div>
         <span id="tl">Entrar</span>
@@ -108,47 +355,55 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
       <p class="note">Esqueceu a senha? Fale com o administrador.</p>
     </div>
 
-    <!-- CADASTRO -->
+    <!-- ── CADASTRO ── -->
     <div class="panel" id="panel-cadastro">
       <div class="alert" id="al-c"></div>
+
       <div class="field">
         <label>Nome completo</label>
         <input type="text" id="c-nome" placeholder="João Silva">
       </div>
+
       <div class="field">
         <label>E-mail</label>
         <input type="email" id="c-email" placeholder="seu@nagumo.com.br" autocomplete="off">
       </div>
+
+      <div class="divider">senha de acesso</div>
+
       <div class="field">
         <label>Senha</label>
         <div class="pass-wrap">
           <input type="password" id="c-senha" placeholder="Mínimo 6 caracteres">
-          <span class="eye-btn" onclick="toggleEye('c-senha',this)" title="Mostrar senha">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="eye-btn" onclick="toggleEye('c-senha',this)" title="Mostrar/ocultar">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
       </div>
+
       <div class="field">
         <label>Confirmar senha</label>
         <div class="pass-wrap">
           <input type="password" id="c-senha2" placeholder="Repita a senha">
-          <span class="eye-btn" onclick="toggleEye('c-senha2',this)" title="Mostrar senha">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="eye-btn" onclick="toggleEye('c-senha2',this)" title="Mostrar/ocultar">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
       </div>
+
       <div class="field">
         <label>🛡️ Código de autorização</label>
         <div class="pass-wrap">
           <input type="password" id="c-auth" placeholder="Fornecido pelo administrador" autocomplete="off">
-          <span class="eye-btn" onclick="toggleEye('c-auth',this)" title="Mostrar código">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="eye-btn" onclick="toggleEye('c-auth',this)" title="Mostrar/ocultar">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
       </div>
+
       <button class="btn" id="btn-cad" onclick="doCad()">
         <div class="spin" id="sc"></div>
-        <span id="tc">Cadastrar</span>
+        <span id="tc">Solicitar acesso</span>
       </button>
       <p class="note">Já tem conta? <a onclick="go('login')">Entrar</a></p>
     </div>
@@ -157,7 +412,7 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
 </div>
 
 <script>
-/* ── FIREBASE CONFIG (mesma do index.html) ── */
+/* ── FIREBASE ── */
 const _fbConfig = {
   apiKey:            "AIzaSyCkUu4CRWEs4HuaYXMKAHQaMQPeQ6BHiKQ",
   authDomain:        "nagumo-agendamento.firebaseapp.com",
@@ -168,29 +423,14 @@ const _fbConfig = {
 };
 firebase.initializeApp(_fbConfig);
 const _db  = firebase.firestore();
-const _COL = "nagumo_agenda";   // mesma collection do index.html
-const _DOC = "nag_auth";        // documento dedicado de autenticação
+const _COL = "nagumo_agenda";
+const _DOC = "nag_auth";
 
-/* ── credenciais padrão do admin ── */
-const ADMIN_DEFAULT = {
-  nome:  "Administrador",
-  email: "admin@nagumo.com.br",
-  senha: "Admin@2025",
-  role:  "admin"
-};
-const CODE_DEFAULT = "NAGUMO2025"; // código de autorização padrão
+/* ── admin & código padrão (fallback) ── */
+const ADMIN = { nome:"Administrador", email:"admin@nagumo.com.br", senha:"Admin@2025", role:"admin" };
+const CODE_DEFAULT = "NAGUMO2025";
 
-/* ─────────────────────────────────────────
-   FIRESTORE: lê/salva estrutura de auth
-   Documento nag_auth:
-   {
-     authCode: "NAGUMO2025",
-     users: {
-       "admin@nagumo.com.br": { nome, email, senha, role },
-       "outro@email.com":     { ... }
-     }
-   }
-───────────────────────────────────────── */
+/* ── Firestore helpers ── */
 async function getAuthData() {
   try {
     const snap = await _db.collection(_COL).doc(_DOC).get();
@@ -209,56 +449,26 @@ async function saveAuthData(data) {
   }
 }
 
-/* ── garante que o admin sempre existe ── */
-async function ensureAdmin() {
-  let data = await getAuthData();
-  if (!data) {
-    // primeira execução: cria tudo do zero
-    await saveAuthData({
-      authCode: CODE_DEFAULT,
-      users: { [ADMIN_DEFAULT.email]: { ...ADMIN_DEFAULT } }
-    });
-  } else if (!data.users || !data.users[ADMIN_DEFAULT.email]) {
-    // admin removido: restaura
-    data.users = data.users || {};
-    data.users[ADMIN_DEFAULT.email] = { ...ADMIN_DEFAULT };
-    await saveAuthData(data);
-  }
-}
-
-/* ── BOOT: verifica sessão e inicializa Firebase ── */
-(async function boot() {
-  const overlay = document.getElementById('loading-overlay');
+/* ── BOOT: apenas verifica sessão, sem escrever no Firestore ── */
+(function boot() {
   try {
-    // sessão já ativa → vai direto pro sistema
     const s = sessionStorage.getItem('nagumo_auth');
     if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        if (parsed && parsed.ok) {
-          window.location.href = 'index.html';
-          return;
-        }
-      } catch(_) {}
+      const p = JSON.parse(s);
+      if (p && p.ok) { window.location.href = 'index.html'; return; }
     }
-    // garante admin no Firestore
-    await ensureAdmin();
-  } catch(e) {
-    console.warn('[Boot]', e.message);
-  } finally {
-    overlay.classList.add('hidden');
-  }
+  } catch(_) {}
+  document.getElementById('ov').classList.add('hidden');
 })();
 
-/* ── olho (mostrar/ocultar senha) ── */
-function toggleEye(inputId, btn) {
-  const inp = document.getElementById(inputId);
+/* ── helpers visuais ── */
+function toggleEye(id, btn) {
+  const inp = document.getElementById(id);
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
-  btn.style.color = show ? '#e8192c' : '#c0c4cc';
+  btn.style.color = show ? '#3AC4D4' : '#94a3b8';
 }
 
-/* ── troca de aba ── */
 function go(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -267,59 +477,67 @@ function go(id, el) {
   document.querySelectorAll('.alert').forEach(a => { a.className = 'alert'; a.textContent = ''; });
 }
 
-/* ── alerta ── */
 function showAlert(id, type, msg) {
   const el = document.getElementById(id);
   el.className = 'alert show ' + type;
   el.textContent = msg;
 }
 
-/* ── loading no botão ── */
 function setLoading(spinId, textId, btnId, on) {
   document.getElementById(spinId).style.display = on ? 'block' : 'none';
   document.getElementById(textId).style.display = on ? 'none'  : 'inline';
   document.getElementById(btnId).disabled = on;
 }
 
-/* ─────────────────────────────────────────
-   LOGIN
-───────────────────────────────────────── */
+function setSession(user) {
+  sessionStorage.setItem('nagumo_auth', JSON.stringify({ ok:true, role:user.role, nome:user.nome }));
+}
+
+/* ── LOGIN ── */
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const senha = document.getElementById('l-senha').value;
-
   if (!email || !senha) { showAlert('al-l','err','Preencha e-mail e senha.'); return; }
 
   setLoading('sl','tl','btn-login',true);
   try {
-    const data = await getAuthData();
-    if (!data || !data.users) {
-      showAlert('al-l','err','Erro ao acessar o sistema. Tente novamente.'); return;
+    let data = await getAuthData();
+
+    if (!data) {
+      /* primeira vez: tenta criar estrutura inicial */
+      const init = { authCode: CODE_DEFAULT, users: { [ADMIN.email]: { ...ADMIN } } };
+      const ok = await saveAuthData(init);
+      if (ok) {
+        data = init;
+      } else {
+        /* fallback hardcoded para o admin */
+        if (email === ADMIN.email && senha === ADMIN.senha) {
+          showAlert('al-l','ok','Login realizado! Redirecionando…');
+          setSession(ADMIN);
+          setTimeout(() => { window.location.href = 'index.html'; }, 900);
+          return;
+        }
+        showAlert('al-l','err','Erro de permissão no banco. Verifique as regras do Firestore.');
+        return;
+      }
     }
 
-    const user = data.users[email];
-    if (!user)            { showAlert('al-l','err','E-mail não encontrado.'); return; }
-    if (user.senha !== senha) { showAlert('al-l','err','Senha incorreta.');  return; }
+    const user = (data.users || {})[email];
+    if (!user)                { showAlert('al-l','err','E-mail não encontrado.'); return; }
+    if (user.senha !== senha) { showAlert('al-l','err','Senha incorreta.'); return; }
 
     showAlert('al-l','ok','Login realizado! Redirecionando…');
-    sessionStorage.setItem('nagumo_auth', JSON.stringify({
-      ok:   true,
-      role: user.role,
-      nome: user.nome
-    }));
+    setSession(user);
     setTimeout(() => { window.location.href = 'index.html'; }, 900);
 
   } catch(e) {
-    console.error('[Login]', e);
     showAlert('al-l','err','Erro de conexão. Verifique sua internet.');
   } finally {
     setLoading('sl','tl','btn-login',false);
   }
 }
 
-/* ─────────────────────────────────────────
-   CADASTRO
-───────────────────────────────────────── */
+/* ── CADASTRO ── */
 async function doCad() {
   const nome   = document.getElementById('c-nome').value.trim();
   const email  = document.getElementById('c-email').value.trim().toLowerCase();
@@ -330,21 +548,15 @@ async function doCad() {
   if (!nome || !email || !senha || !senha2 || !auth) {
     showAlert('al-c','err','Preencha todos os campos.'); return;
   }
-  if (senha !== senha2) {
-    showAlert('al-c','err','As senhas não coincidem.'); return;
-  }
-  if (senha.length < 6) {
-    showAlert('al-c','err','Senha com mínimo 6 caracteres.'); return;
-  }
+  if (senha !== senha2) { showAlert('al-c','err','As senhas não coincidem.'); return; }
+  if (senha.length < 6) { showAlert('al-c','err','Senha com mínimo 6 caracteres.'); return; }
 
   setLoading('sc','tc','btn-cad',true);
   try {
-    const data = await getAuthData();
-    if (!data) {
-      showAlert('al-c','err','Erro ao acessar o sistema. Tente novamente.'); return;
-    }
+    let data = await getAuthData();
+    if (!data) data = { authCode: CODE_DEFAULT, users: { [ADMIN.email]: { ...ADMIN } } };
 
-    if (auth !== data.authCode) {
+    if (auth !== (data.authCode || CODE_DEFAULT)) {
       showAlert('al-c','err','Código de autorização inválido.'); return;
     }
     if (data.users && data.users[email]) {
@@ -355,23 +567,24 @@ async function doCad() {
     data.users[email] = { nome, email, senha, role: 'usuario' };
 
     const ok = await saveAuthData(data);
-    if (!ok) { showAlert('al-c','err','Erro ao salvar. Verifique sua conexão.'); return; }
+    if (!ok) {
+      showAlert('al-c','err','Sem permissão para salvar. Verifique as regras do Firestore.'); return;
+    }
 
-    showAlert('al-c','ok','Cadastro realizado! Faça seu login.');
+    showAlert('al-c','ok','Cadastro realizado com sucesso! Faça seu login.');
     ['c-nome','c-email','c-senha','c-senha2','c-auth'].forEach(id => {
       document.getElementById(id).value = '';
     });
     setTimeout(() => go('login'), 1800);
 
   } catch(e) {
-    console.error('[Cadastro]', e);
     showAlert('al-c','err','Erro de conexão. Verifique sua internet.');
   } finally {
     setLoading('sc','tc','btn-cad',false);
   }
 }
 
-/* ── Enter para submeter ── */
+/* ── Enter ── */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (document.getElementById('panel-login').classList.contains('active')) doLogin();
