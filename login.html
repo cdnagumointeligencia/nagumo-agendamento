@@ -6,25 +6,19 @@
 <title>Nagumo · Login</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 
-<!-- Firebase Compat SDK — mesma versão do index.html -->
+<!-- Firebase Compat SDK (mesma versão do index.html) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px}
 
-.topbar{background:#0d1b2e;height:52px;display:flex;align-items:center;padding:0 24px;gap:10px}
-.logo{width:28px;height:28px;background:#e8192c;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
-.brand{font-size:14px;font-weight:700;color:#fff;letter-spacing:.4px}
-.brand small{display:block;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1.2px;text-transform:uppercase;font-weight:400}
+.card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:380px;overflow:hidden}
 
-.page{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 16px}
-
-.card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:360px;overflow:hidden}
-
-.card-top{background:linear-gradient(135deg,#0d1b2e,#162338);padding:24px 24px 20px}
-.card-top h1{font-size:18px;font-weight:700;color:#fff;margin-bottom:2px}
+.card-top{background:linear-gradient(135deg,#0d1b2e,#162338);padding:28px 24px 22px;text-align:center}
+.card-logo{width:40px;height:40px;background:#e8192c;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;margin-bottom:12px}
+.card-top h1{font-size:18px;font-weight:700;color:#fff;margin-bottom:3px}
 .card-top p{font-size:12px;color:rgba(255,255,255,.45)}
 
 .tabs{display:flex;border-bottom:1px solid #e2e5ea}
@@ -41,77 +35,130 @@ body{font-family:'DM Sans',sans-serif;background:#f4f5f7;min-height:100vh;displa
 .field input:focus{border-color:#e8192c}
 .field input::placeholder{color:#c0c4cc}
 
+.pass-wrap{position:relative;display:flex;align-items:center}
+.pass-wrap input{padding-right:38px}
+.eye-btn{position:absolute;right:11px;cursor:pointer;color:#c0c4cc;display:flex;align-items:center;user-select:none;transition:color .15s}
+.eye-btn:hover{color:#e8192c}
+
 .alert{display:none;align-items:center;gap:7px;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:12px}
 .alert.show{display:flex}
 .alert.ok{background:#e0f7f5;color:#0f766e;border:1px solid #99e6de}
 .alert.err{background:#fff0f1;color:#c0101f;border:1px solid #fca5a5}
 
 .btn{width:100%;padding:11px;border:none;border-radius:8px;background:#e8192c;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;transition:.15s}
-.btn:hover{background:#c0101f}
-.btn:disabled{background:#d1d5db;cursor:not-allowed}
+.btn:hover:not(:disabled){background:#c0101f}
+.btn:disabled{opacity:.6;cursor:not-allowed}
 
 .note{font-size:11px;color:#9ca3af;text-align:center;margin-top:14px}
-.note a{color:#e8192c;text-decoration:none;font-weight:600}
+.note a{color:#e8192c;text-decoration:none;font-weight:600;cursor:pointer}
 
 .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(13,27,46,.55);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px)}
+.loading-overlay.hidden{display:none}
+.loading-box{background:#fff;border-radius:12px;padding:24px 32px;text-align:center;font-size:13px;color:#0d1b2e;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:10px}
+.loading-spin{width:22px;height:22px;border:3px solid #e2e5ea;border-top-color:#e8192c;border-radius:50%;animation:spin .7s linear infinite}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="logo">N</div>
-  <div class="brand">NAGUMO <small>Agendamento de Fornecedores</small></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-box">
+    <div class="loading-spin"></div>
+    Verificando acesso…
+  </div>
 </div>
 
-<div class="page">
-  <div class="card">
+<div class="card">
 
-    <div class="card-top">
-      <h1>Acesso ao sistema</h1>
-      <p>Use suas credenciais Nagumo</p>
-    </div>
+  <div class="card-top">
+    <div class="card-logo">N</div>
+    <h1>Acesso ao sistema</h1>
+    <p>Nagumo · Agendamento de Fornecedores</p>
+  </div>
 
-    <div class="tabs">
-      <button class="tab active" onclick="go('login',this)">Entrar</button>
-      <button class="tab" onclick="go('cadastro',this)">Cadastrar</button>
-    </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-login"    onclick="go('login',this)">Entrar</button>
+    <button class="tab"        id="tab-cadastro" onclick="go('cadastro',this)">Cadastrar</button>
+  </div>
 
-    <div class="body">
+  <div class="body">
 
-      <!-- LOGIN -->
-      <div class="panel active" id="panel-login">
-        <div class="alert" id="al-l"></div>
-        <div class="field"><label>E-mail</label><input type="email" id="l-email" placeholder="seu@nagumo.com.br"></div>
-        <div class="field"><label>Senha</label><input type="password" id="l-senha" placeholder="••••••••"></div>
-        <button class="btn" id="btn-l" onclick="doLogin()">
-          <div class="spin" id="sl"></div><span id="tl">Entrar</span>
-        </button>
-        <p class="note">Esqueceu a senha? Fale com o administrador.</p>
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <div class="alert" id="al-l"></div>
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="l-email" placeholder="seu@nagumo.com.br" autocomplete="off">
       </div>
-
-      <!-- CADASTRO -->
-      <div class="panel" id="panel-cadastro">
-        <div class="alert" id="al-c"></div>
-        <div class="field"><label>Nome completo</label><input type="text" id="c-nome" placeholder="João Silva"></div>
-        <div class="field"><label>E-mail</label><input type="email" id="c-email" placeholder="seu@nagumo.com.br"></div>
-        <div class="field"><label>Senha</label><input type="password" id="c-senha" placeholder="Mínimo 6 caracteres"></div>
-        <button class="btn" id="btn-c" onclick="doCad()">
-          <div class="spin" id="sc"></div><span id="tc">Cadastrar</span>
-        </button>
-        <p class="note">Já tem conta? <a href="#" onclick="go('login');return false">Entrar</a></p>
+      <div class="field">
+        <label>Senha</label>
+        <div class="pass-wrap">
+          <input type="password" id="l-senha" placeholder="••••••••">
+          <span class="eye-btn" onclick="toggleEye('l-senha',this)" title="Mostrar senha">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
       </div>
-
+      <button class="btn" id="btn-login" onclick="doLogin()">
+        <div class="spin" id="sl"></div>
+        <span id="tl">Entrar</span>
+      </button>
+      <p class="note">Esqueceu a senha? Fale com o administrador.</p>
     </div>
+
+    <!-- CADASTRO -->
+    <div class="panel" id="panel-cadastro">
+      <div class="alert" id="al-c"></div>
+      <div class="field">
+        <label>Nome completo</label>
+        <input type="text" id="c-nome" placeholder="João Silva">
+      </div>
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="c-email" placeholder="seu@nagumo.com.br" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <div class="pass-wrap">
+          <input type="password" id="c-senha" placeholder="Mínimo 6 caracteres">
+          <span class="eye-btn" onclick="toggleEye('c-senha',this)" title="Mostrar senha">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Confirmar senha</label>
+        <div class="pass-wrap">
+          <input type="password" id="c-senha2" placeholder="Repita a senha">
+          <span class="eye-btn" onclick="toggleEye('c-senha2',this)" title="Mostrar senha">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="field">
+        <label>🛡️ Código de autorização</label>
+        <div class="pass-wrap">
+          <input type="password" id="c-auth" placeholder="Fornecido pelo administrador" autocomplete="off">
+          <span class="eye-btn" onclick="toggleEye('c-auth',this)" title="Mostrar código">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+      <button class="btn" id="btn-cad" onclick="doCad()">
+        <div class="spin" id="sc"></div>
+        <span id="tc">Cadastrar</span>
+      </button>
+      <p class="note">Já tem conta? <a onclick="go('login')">Entrar</a></p>
+    </div>
+
   </div>
 </div>
 
 <script>
-// ── FIREBASE ─────────────────────────────────────────────────
-// Mesma config E mesma coleção ("nagumo_agenda") do index.html.
-// Isso garante que as regras do Firestore já permitem acesso —
-// não é necessário nenhuma mudança nas regras de segurança.
-const firebaseConfig = {
+/* ── FIREBASE CONFIG (mesma do index.html) ── */
+const _fbConfig = {
   apiKey:            "AIzaSyCkUu4CRWEs4HuaYXMKAHQaMQPeQ6BHiKQ",
   authDomain:        "nagumo-agendamento.firebaseapp.com",
   projectId:         "nagumo-agendamento",
@@ -119,143 +166,212 @@ const firebaseConfig = {
   messagingSenderId: "577346122276",
   appId:             "1:577346122276:web:e00efca664c8d438119eb1"
 };
+firebase.initializeApp(_fbConfig);
+const _db  = firebase.firestore();
+const _COL = "nagumo_agenda";   // mesma collection do index.html
+const _DOC = "nag_auth";        // documento dedicado de autenticação
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+/* ── credenciais padrão do admin ── */
+const ADMIN_DEFAULT = {
+  nome:  "Administrador",
+  email: "admin@nagumo.com.br",
+  senha: "Admin@2025",
+  role:  "admin"
+};
+const CODE_DEFAULT = "NAGUMO2025"; // código de autorização padrão
 
-// Mesma coleção do index.html → regras já existentes cobrem este acesso
-const COL     = 'nagumo_agenda';   // igual ao _COL do index.html
-const DOC_KEY = 'nag_login_users'; // novo documento dentro da coleção existente
-
-// ── USUÁRIOS FIXOS (sem Firebase, funcionam offline) ─────────
-const FIXOS = [
-  {email:'admin@nagumo.com.br',  senha:'Admin@2025',  nome:'Administrador', role:'admin'},
-  {email:'usuario@nagumo.com.br',senha:'Nagumo@2025', nome:'Usuário',       role:'usuario'},
-];
-
-// ── LEITURA E ESCRITA — padrão idêntico ao index.html ────────
-async function getUsers() {
+/* ─────────────────────────────────────────
+   FIRESTORE: lê/salva estrutura de auth
+   Documento nag_auth:
+   {
+     authCode: "NAGUMO2025",
+     users: {
+       "admin@nagumo.com.br": { nome, email, senha, role },
+       "outro@email.com":     { ... }
+     }
+   }
+───────────────────────────────────────── */
+async function getAuthData() {
   try {
-    const snap = await db.collection(COL).doc(DOC_KEY).get();
-    if (!snap.exists) return [];
-    return Array.isArray(snap.data().payload) ? snap.data().payload : [];
-  } catch (e) {
-    return [];
+    const snap = await _db.collection(_COL).doc(_DOC).get();
+    if (snap.exists) return snap.data();
+  } catch(e) { console.warn('[Auth] leitura:', e.message); }
+  return null;
+}
+
+async function saveAuthData(data) {
+  try {
+    await _db.collection(_COL).doc(_DOC).set(data);
+    return true;
+  } catch(e) {
+    console.warn('[Auth] escrita:', e.message);
+    return false;
   }
 }
 
-async function saveUsers(users) {
-  await db.collection(COL).doc(DOC_KEY).set({ payload: users });
+/* ── garante que o admin sempre existe ── */
+async function ensureAdmin() {
+  let data = await getAuthData();
+  if (!data) {
+    // primeira execução: cria tudo do zero
+    await saveAuthData({
+      authCode: CODE_DEFAULT,
+      users: { [ADMIN_DEFAULT.email]: { ...ADMIN_DEFAULT } }
+    });
+  } else if (!data.users || !data.users[ADMIN_DEFAULT.email]) {
+    // admin removido: restaura
+    data.users = data.users || {};
+    data.users[ADMIN_DEFAULT.email] = { ...ADMIN_DEFAULT };
+    await saveAuthData(data);
+  }
 }
 
-// ── UI ───────────────────────────────────────────────────────
+/* ── BOOT: verifica sessão e inicializa Firebase ── */
+(async function boot() {
+  const overlay = document.getElementById('loading-overlay');
+  try {
+    // sessão já ativa → vai direto pro sistema
+    const s = sessionStorage.getItem('nagumo_auth');
+    if (s) {
+      try {
+        const parsed = JSON.parse(s);
+        if (parsed && parsed.ok) {
+          window.location.href = 'index.html';
+          return;
+        }
+      } catch(_) {}
+    }
+    // garante admin no Firestore
+    await ensureAdmin();
+  } catch(e) {
+    console.warn('[Boot]', e.message);
+  } finally {
+    overlay.classList.add('hidden');
+  }
+})();
+
+/* ── olho (mostrar/ocultar senha) ── */
+function toggleEye(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.style.color = show ? '#e8192c' : '#c0c4cc';
+}
+
+/* ── troca de aba ── */
 function go(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  if (el) el.classList.add('active');
-  else document.querySelectorAll('.tab')[id === 'login' ? 0 : 1].classList.add('active');
+  (el || document.getElementById('tab-' + id)).classList.add('active');
   document.getElementById('panel-' + id).classList.add('active');
-  document.getElementById('al-l').className = 'alert';
-  document.getElementById('al-c').className = 'alert';
+  document.querySelectorAll('.alert').forEach(a => { a.className = 'alert'; a.textContent = ''; });
 }
 
+/* ── alerta ── */
 function showAlert(id, type, msg) {
   const el = document.getElementById(id);
   el.className = 'alert show ' + type;
   el.textContent = msg;
 }
 
+/* ── loading no botão ── */
 function setLoading(spinId, textId, btnId, on) {
   document.getElementById(spinId).style.display = on ? 'block' : 'none';
   document.getElementById(textId).style.display = on ? 'none'  : 'inline';
   document.getElementById(btnId).disabled = on;
 }
 
-// ── LOGIN ────────────────────────────────────────────────────
+/* ─────────────────────────────────────────
+   LOGIN
+───────────────────────────────────────── */
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const senha = document.getElementById('l-senha').value;
 
-  if (!email || !senha) {
-    showAlert('al-l', 'err', 'Preencha e-mail e senha.');
-    return;
-  }
+  if (!email || !senha) { showAlert('al-l','err','Preencha e-mail e senha.'); return; }
 
-  setLoading('sl', 'tl', 'btn-l', true);
-
+  setLoading('sl','tl','btn-login',true);
   try {
-    // 1. Usuários fixos — verificação local, sem internet
-    const fixo = FIXOS.find(u => u.email === email && u.senha === senha);
-    if (fixo) { loginOk(fixo.nome, fixo.role); return; }
-
-    // 2. Usuários cadastrados — Firestore (disponível em qualquer navegador)
-    const users = await getUsers();
-    const found = users.find(u => u.email === email && u.senha === senha);
-    if (found) { loginOk(found.nome, found.role || 'usuario'); return; }
-
-    showAlert('al-l', 'err', 'E-mail ou senha incorretos.');
-
-  } catch (err) {
-    console.error(err);
-    showAlert('al-l', 'err', 'Erro de conexão com o servidor. Verifique sua internet.');
-  } finally {
-    setLoading('sl', 'tl', 'btn-l', false);
-  }
-}
-
-function loginOk(nome, role) {
-  showAlert('al-l', 'ok', 'Login realizado! Redirecionando…');
-  sessionStorage.setItem('nagumo_auth', JSON.stringify({ ok: true, role, nome }));
-  setTimeout(() => { window.location.href = 'index.html'; }, 900);
-}
-
-// ── CADASTRO ─────────────────────────────────────────────────
-async function doCad() {
-  const nome  = document.getElementById('c-nome').value.trim();
-  const email = document.getElementById('c-email').value.trim().toLowerCase();
-  const senha = document.getElementById('c-senha').value;
-
-  if (!nome || !email || !senha) {
-    showAlert('al-c', 'err', 'Preencha todos os campos.');
-    return;
-  }
-  if (senha.length < 6) {
-    showAlert('al-c', 'err', 'Senha com mínimo 6 caracteres.');
-    return;
-  }
-  if (FIXOS.find(u => u.email === email)) {
-    showAlert('al-c', 'err', 'Este e-mail já está cadastrado.');
-    return;
-  }
-
-  setLoading('sc', 'tc', 'btn-c', true);
-
-  try {
-    const users = await getUsers();
-
-    if (users.find(u => u.email === email)) {
-      showAlert('al-c', 'err', 'Este e-mail já está cadastrado.');
-      return;
+    const data = await getAuthData();
+    if (!data || !data.users) {
+      showAlert('al-l','err','Erro ao acessar o sistema. Tente novamente.'); return;
     }
 
-    users.push({ nome, email, senha, role: 'usuario' });
-    await saveUsers(users);
+    const user = data.users[email];
+    if (!user)            { showAlert('al-l','err','E-mail não encontrado.'); return; }
+    if (user.senha !== senha) { showAlert('al-l','err','Senha incorreta.');  return; }
 
-    showAlert('al-c', 'ok', 'Cadastro realizado! Já pode fazer login.');
-    document.getElementById('c-nome').value  = '';
-    document.getElementById('c-email').value = '';
-    document.getElementById('c-senha').value = '';
-    setTimeout(() => go('login'), 1500);
+    showAlert('al-l','ok','Login realizado! Redirecionando…');
+    sessionStorage.setItem('nagumo_auth', JSON.stringify({
+      ok:   true,
+      role: user.role,
+      nome: user.nome
+    }));
+    setTimeout(() => { window.location.href = 'index.html'; }, 900);
 
-  } catch (err) {
-    console.error(err);
-    showAlert('al-c', 'err', 'Erro de conexão com o servidor. Verifique sua internet.');
+  } catch(e) {
+    console.error('[Login]', e);
+    showAlert('al-l','err','Erro de conexão. Verifique sua internet.');
   } finally {
-    setLoading('sc', 'tc', 'btn-c', false);
+    setLoading('sl','tl','btn-login',false);
   }
 }
 
-// ── ENTER ─────────────────────────────────────────────────────
+/* ─────────────────────────────────────────
+   CADASTRO
+───────────────────────────────────────── */
+async function doCad() {
+  const nome   = document.getElementById('c-nome').value.trim();
+  const email  = document.getElementById('c-email').value.trim().toLowerCase();
+  const senha  = document.getElementById('c-senha').value;
+  const senha2 = document.getElementById('c-senha2').value;
+  const auth   = document.getElementById('c-auth').value;
+
+  if (!nome || !email || !senha || !senha2 || !auth) {
+    showAlert('al-c','err','Preencha todos os campos.'); return;
+  }
+  if (senha !== senha2) {
+    showAlert('al-c','err','As senhas não coincidem.'); return;
+  }
+  if (senha.length < 6) {
+    showAlert('al-c','err','Senha com mínimo 6 caracteres.'); return;
+  }
+
+  setLoading('sc','tc','btn-cad',true);
+  try {
+    const data = await getAuthData();
+    if (!data) {
+      showAlert('al-c','err','Erro ao acessar o sistema. Tente novamente.'); return;
+    }
+
+    if (auth !== data.authCode) {
+      showAlert('al-c','err','Código de autorização inválido.'); return;
+    }
+    if (data.users && data.users[email]) {
+      showAlert('al-c','err','Este e-mail já está cadastrado.'); return;
+    }
+
+    data.users = data.users || {};
+    data.users[email] = { nome, email, senha, role: 'usuario' };
+
+    const ok = await saveAuthData(data);
+    if (!ok) { showAlert('al-c','err','Erro ao salvar. Verifique sua conexão.'); return; }
+
+    showAlert('al-c','ok','Cadastro realizado! Faça seu login.');
+    ['c-nome','c-email','c-senha','c-senha2','c-auth'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    setTimeout(() => go('login'), 1800);
+
+  } catch(e) {
+    console.error('[Cadastro]', e);
+    showAlert('al-c','err','Erro de conexão. Verifique sua internet.');
+  } finally {
+    setLoading('sc','tc','btn-cad',false);
+  }
+}
+
+/* ── Enter para submeter ── */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (document.getElementById('panel-login').classList.contains('active')) doLogin();
