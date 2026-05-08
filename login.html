@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Nagumo · Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{ --navy:#031F3E; --red:#CD0036; --red-dk:#a8002b; --cyan:#3AC4D4; }
+body{
+  font-family:'Plus Jakarta Sans', sans-serif; background:var(--navy); min-height:100vh;
+  display:flex; align-items:center; justify-content:center; margin:0;
+  background-image: radial-gradient(circle at 20% 10%, rgba(58,196,212,0.15) 0%, transparent 50%);
+}
+.login-card {
+  background: white; padding: 48px; border-radius: 32px; width: 100%; max-width: 400px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5); text-align: center;
+}
+.logo { width: 64px; height: 64px; background: linear-gradient(135deg, var(--red), var(--red-dk)); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 28px; margin-bottom: 24px; }
+input { width: 100%; padding: 14px 18px; margin-bottom: 16px; border: 2px solid #f1f5f9; border-radius: 16px; box-sizing: border-box; font-family: inherit; font-size: 15px; outline: none; }
+input:focus { border-color: var(--cyan); }
+button { width: 100%; padding: 16px; border: none; border-radius: 18px; background: var(--red); color: white; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; }
+button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(205,0,54,0.3); }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="logo">N</div>
+  <h2 style="margin-bottom: 8px">Acesso Nagumo</h2>
+  <p style="color: #94a3b8; font-size: 13px; margin-bottom: 32px">Use seu e-mail corporativo</p>
+  <input type="email" id="email" placeholder="seu@nagumo.com.br">
+  <input type="password" id="pass" placeholder="Senha">
+  <button onclick="login()">ENTRAR NO SISTEMA</button>
+</div>
+<script>
+function login() {
+  const e = document.getElementById('email').value;
+  const p = document.getElementById('pass').value;
+  if(e === 'admin@nagumo.com.br' && p === 'Admin@2025') {
+    sessionStorage.setItem('nagumo_auth', JSON.stringify({ ok: true, nome: 'Administrador', role: 'admin' }));
+    window.location.href = 'index.html';
+  } else { alert('Acesso negado.'); }
+}
+</script>
+</body>
+</html>
