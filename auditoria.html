@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nagumo · Auditoria</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --navy:#002042; --navy2:#00355F;
+  --teal:#46D0D1; --teal-dk:#30b8b9; --teal-lt:#e6fbfb;
+  --red:#F60032; --red-dk:#d4002b; --red-lt:#ffe8ed;
+  --snow:#F7F7F7; --white:#ffffff;
+  --mid:#e2e8f0; --mid2:#cbd5e1;
+  --muted:#64748b; --label:#334155; --navy-text:#002042;
+  --green:#16a34a; --green-lt:#dcfce7;
+  --amber:#d97706; --amber-lt:#fef3c7;
+  --purple:#7c3aed; --purple-lt:#f5f3ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--snow);min-height:100vh;color:var(--navy-text);}
+
+.topbar{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+  height:56px;display:flex;align-items:center;padding:0 28px;gap:14px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 16px rgba(0,32,66,.4);
+}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--teal),var(--red));}
+.tb-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--red),var(--red-dk));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(246,0,50,.4);}
+.tb-brand{font-size:14px;font-weight:700;color:#fff;letter-spacing:.3px;}
+.tb-brand small{display:block;font-size:9.5px;color:rgba(255,255,255,.4);
+  letter-spacing:1.2px;text-transform:uppercase;font-weight:400;}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.tb-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);
+  color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;font-size:11px;
+  font-weight:600;cursor:pointer;transition:.15s;text-decoration:none;}
+.tb-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+
+.content{max-width:1200px;margin:0 auto;padding:32px 24px;}
+
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+.page-title{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.3px;
+  display:flex;align-items:center;gap:10px;}
+.page-title svg{color:var(--red);}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+
+/* FILTROS */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:end;}
+.filter-group{display:flex;flex-direction:column;gap:4px;}
+.filter-group label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+.filter-group input,.filter-group select{
+  padding:8px 10px;border:1.5px solid var(--mid);border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:12px;color:var(--navy);background:var(--white);
+  outline:none;transition:border-color .15s;min-width:140px;
+}
+.filter-group input:focus,.filter-group select:focus{border-color:var(--teal);}
+.filter-group input[type=date]{min-width:150px;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(135deg,var(--red),var(--red-dk));color:#fff;
+  box-shadow:0 2px 10px rgba(246,0,50,.25);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(246,0,50,.35);}
+.btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--mid);}
+.btn-ghost:hover{background:var(--snow);border-color:var(--muted);}
+
+/* ESTATÍSTICAS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.stat{background:var(--white);border-radius:12px;padding:16px 18px;
+  border:1px solid var(--mid);display:flex;flex-direction:column;gap:4px;}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+.stat-val{font-size:26px;font-weight:800;color:var(--navy);line-height:1;}
+.stat-val.teal{color:var(--teal-dk);}
+.stat-val.red{color:var(--red);}
+.stat-val.amber{color:var(--amber);}
+.stat-val.purple{color:var(--purple);}
+.stat-desc{font-size:11px;color:var(--muted);}
+
+/* TABELA */
+.table-wrap{background:var(--white);border-radius:14px;border:1px solid var(--mid);
+  overflow:hidden;box-shadow:0 2px 8px rgba(0,32,66,.06);}
+table{width:100%;border-collapse:collapse;}
+thead th{
+  background:var(--snow);padding:12px 14px;font-size:10px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--muted);
+  text-align:left;border-bottom:1.5px solid var(--mid);white-space:nowrap;
+  position:sticky;top:56px;z-index:1;
+}
+tbody tr{border-bottom:1px solid var(--mid);transition:background .1s;}
+tbody tr:hover{background:#f5f7fb;}
+td{padding:11px 14px;font-size:13px;vertical-align:middle;}
+td.ts{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+td.user{font-weight:600;color:var(--navy);}
+td.email{font-size:11px;color:var(--muted);}
+td.acao{font-weight:600;}
+td.det{color:var(--label);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.badge-role{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;}
+.badge-admin{background:var(--red-lt);color:var(--red);}
+.badge-user{background:var(--teal-lt);color:var(--teal-dk);}
+
+.empty{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 24px;
+  text-align:center;}
+.empty svg{opacity:.15;}
+.empty h3{font-size:15px;font-weight:700;color:var(--navy);}
+.empty p{font-size:13px;color:var(--muted);max-width:300px;line-height:1.6;}
+
+@media(max-width:768px){
+  .content{padding:20px 14px;}
+  .filters{flex-direction:column;}
+  .filter-group input,.filter-group select{width:100%;min-width:0;}
+  td.det{max-width:120px;}
+}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var s=sessionStorage.getItem('nagumo_auth');
+  if(!s||!JSON.parse(s).ok||JSON.parse(s).role!=='admin'){
+    window.location.href='login.html';return;
+  }
+})();
+</script>
+
+<div class="topbar">
+  <div class="tb-logo">N</div>
+  <div class="tb-brand">Auditoria<small>Registro de alterações do sistema</small></div>
+  <div class="tb-right">
+    <a class="tb-btn" href="admin-usuarios.html">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Usuários
+    </a>
+    <a class="tb-btn" href="index.html">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar
+    </a>
+    <button class="tb-btn" onclick="nagumoLogout()" style="color:rgba(255,255,255,.5)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="page-head">
+    <div>
+      <div class="page-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Registro de Auditoria
+      </div>
+      <div class="page-sub">Todas as alterações feitas no sistema, quem fez e quando</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportAudit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar JSON
+      </button>
+      <button class="btn btn-ghost" onclick="loadAudit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats-bar"></div>
+
+  <div class="filters" id="filters">
+    <div class="filter-group">
+      <label>De</label>
+      <input type="date" id="filtro-data-de" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Até</label>
+      <input type="date" id="filtro-data-ate" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Usuário</label>
+      <select id="filtro-usuario" onchange="applyFilters()"><option value="">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Ação</label>
+      <select id="filtro-acao" onchange="applyFilters()"><option value="">Todas</option></select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px">Data / Hora</th>
+          <th style="width:160px">Usuário</th>
+          <th style="width:80px">Cargo</th>
+          <th style="width:160px">Ação</th>
+          <th>Detalhes</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="table-empty" class="empty" style="display:none">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <h3>Nenhum registro encontrado</h3>
+      <p>Não há eventos de auditoria que correspondam aos filtros atuais.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const _fbConfig = {
+  apiKey:"AIzaSyCkUu4CRWEs4HuaYXMKAHQaMQPeQ6BHiKQ",
+  authDomain:"nagumo-agendamento.firebaseapp.com",
+  projectId:"nagumo-agendamento",
+  storageBucket:"nagumo-agendamento.firebasestorage.app",
+  messagingSenderId:"577346122276",
+  appId:"1:577346122276:web:e00efca664c8d438119eb1"
+};
+firebase.initializeApp(_fbConfig);
+const _db = firebase.firestore();
+const _COL_AUDIT = "nagumo_auditoria";
+
+var logs = [];
+var usuarios = new Set();
+var acoes = new Set();
+
+function fmtDT(iso){
+  if(!iso)return'—';
+  var d=new Date(iso);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]||m;});
+}
+
+function nagumoLogout(){
+  sessionStorage.removeItem('nagumo_auth');
+  window.location.href='login.html';
+}
+
+async function loadAudit(){
+  document.getElementById('table-body').innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">Carregando…</td></tr>';
+  try{
+    var snap=await _db.collection(_COL_AUDIT).orderBy('data','desc').get();
+    logs=[];
+    snap.forEach(function(doc){logs.push(doc.data());});
+  }catch(e){logs=[];}
+  try{var cached=JSON.parse(localStorage.getItem('nag_audit')||'[]');if(cached.length>logs.length)logs=cached;}catch(e){}
+  if(!logs.length){document.getElementById('table-body').innerHTML='';document.getElementById('table-empty').style.display='block';renderStats();return;}
+  document.getElementById('table-empty').style.display='none';
+  usuarios=new Set();acoes=new Set();
+  logs.forEach(function(l){if(l.usuario)usuarios.add(l.usuario);if(l.acao)acoes.add(l.acao);});
+  populateFilters();
+  applyFilters();
+}
+
+function populateFilters(){
+  var uSel=document.getElementById('filtro-usuario');
+  var aSel=document.getElementById('filtro-acao');
+  var curU=uSel.value,curA=aSel.value;
+  uSel.innerHTML='<option value="">Todos</option>'+Array.from(usuarios).sort().map(function(u){return'<option value="'+escHtml(u)+'"'+(u===curU?' selected':'')+'>'+escHtml(u)+'</option>';}).join('');
+  aSel.innerHTML='<option value="">Todas</option>'+Array.from(acoes).sort().map(function(a){return'<option value="'+escHtml(a)+'"'+(a===curA?' selected':'')+'>'+escHtml(a)+'</option>';}).join('');
+}
+
+function applyFilters(){
+  var de=document.getElementById('filtro-data-de').value;
+  var ate=document.getElementById('filtro-data-ate').value;
+  var userF=document.getElementById('filtro-usuario').value;
+  var acaoF=document.getElementById('filtro-acao').value;
+  var filtered=logs.filter(function(l){
+    if(de&&l.data<de+'T00:00:00')return false;
+    if(ate&&l.data>ate+'T23:59:59')return false;
+    if(userF&&l.usuario!==userF)return false;
+    if(acaoF&&l.acao!==acaoF)return false;
+    return true;
+  });
+  renderTable(filtered);
+  renderStats(filtered);
+}
+
+function renderTable(arr){
+  var tb=document.getElementById('table-body');
+  var te=document.getElementById('table-empty');
+  if(!arr.length){tb.innerHTML='';te.style.display='block';return;}
+  te.style.display='none';
+  tb.innerHTML=arr.map(function(l){
+    var cargoCls=l.cargo==='admin'?'badge-admin':'badge-user';
+    var cargoLbl=l.cargo==='admin'?'Admin':'Usuário';
+    return '<tr>'+
+      '<td class="ts">'+fmtDT(l.data)+'</td>'+
+      '<td><div class="user">'+escHtml(l.usuario||'—')+'</div><div class="email">'+escHtml(l.email||'')+'</div></td>'+
+      '<td><span class="badge-role '+cargoCls+'">'+cargoLbl+'</span></td>'+
+      '<td class="acao">'+escHtml(l.acao||'—')+'</td>'+
+      '<td class="det">'+escHtml(l.detalhes||'—')+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+function renderStats(arr){
+  if(!arr)arr=logs;
+  var total=arr.length;
+  var usuariosUnicos=new Set(arr.map(function(l){return l.usuario;})).size;
+  var acoesUnicas=new Set(arr.map(function(l){return l.acao;})).size;
+  var criacoes=arr.filter(function(l){return l.acao&&l.acao.indexOf('Criou')===0;}).length;
+  var remocoes=arr.filter(function(l){return l.acao&&l.acao.indexOf('Removeu')===0;}).length;
+  document.getElementById('stats-bar').innerHTML=
+    '<div class="stat"><div class="stat-label">Registros</div><div class="stat-val">'+total+'</div><div class="stat-desc">total de eventos</div></div>'+
+    '<div class="stat"><div class="stat-label">Usuários</div><div class="stat-val teal">'+usuariosUnicos+'</div><div class="stat-desc">que fizeram alterações</div></div>'+
+    '<div class="stat"><div class="stat-label">Ações</div><div class="stat-val purple">'+acoesUnicas+'</div><div class="stat-desc">tipos diferentes</div></div>'+
+    '<div class="stat"><div class="stat-label">Criações</div><div class="stat-val" style="color:#16a34a">'+criacoes+'</div><div class="stat-desc">novos registros</div></div>'+
+    '<div class="stat"><div class="stat-label">Remoções</div><div class="stat-val amber">'+remocoes+'</div><div class="stat-desc">registros removidos</div></div>';
+}
+
+function exportAudit(){
+  var data=JSON.stringify(logs,null,2);
+  var blob=new Blob([data],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='nagumo_auditoria_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+}
+
+loadAudit();
+</script>
+</body>
+</html>
