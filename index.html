@@ -1351,6 +1351,14 @@ function nagumoLogout(){
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gray-label)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </div>
+        <div class="settings-row" id="restore-row" style="display:none" onclick="document.getElementById('restore-input').click()">
+          <div class="settings-row-left">
+            <span class="settings-row-label">Restaurar backup</span>
+            <span class="settings-row-desc">Selecionar JSON e substituir todos os dados do sistema</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gray-label)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <input type="file" id="restore-input" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
       </div>
 
       <div class="settings-section">
@@ -2750,7 +2758,11 @@ function renderCadastro(){
 }
 
 /* ── SETTINGS ── */
-function openSettings(){ document.getElementById('settings-overlay').classList.add('open'); }
+function openSettings(){
+  var el=document.getElementById('restore-row');
+  if(el)el.style.display=isAdmin()?'':'none';
+  document.getElementById('settings-overlay').classList.add('open');
+}
 function closeSettings(){ document.getElementById('settings-overlay').classList.remove('open'); }
 
 /* ── LIXEIRA ── */
@@ -2844,6 +2856,42 @@ async function exportData(){
   a.href = URL.createObjectURL(blob);
   a.download = 'nagumo_backup_'+new Date().toISOString().split('T')[0]+'.json';
   a.click();
+}
+
+function importBackup(file){
+  if(!file)return;
+  if(!isAdmin())return;
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    var data;
+    try{data=JSON.parse(e.target.result)}catch(ex){alert('Arquivo JSON inválido');return}
+    if(!data.registros||!data.fornecedores_importados){alert('Arquivo de backup não reconhecido');return}
+    if(!confirm('Isso irá SUBSTITUIR todos os dados atuais do sistema pelos dados do backup. Continuar?'))return;
+    try{
+      var _bak={registros:regs,fornecedores_importados:imported,fornecedores_manuais:manual,auditoria:JSON.parse(localStorage.getItem('nag_audit')||'[]'),configuracoes:{tema_escuro:ls('nag_dark',false)},restaurado_em:new Date().toISOString()};
+      localStorage.setItem('nag_restore_backup',JSON.stringify(_bak));
+    }catch(_e){}
+    try{
+      regs=data.registros;
+      imported=data.fornecedores_importados;
+      manual=data.fornecedores_manuais||[];
+      await lsS('nag_reg',regs);
+      await lsS('nag_imp',imported);
+      await lsS('nag_man',manual);
+      if(data.auditoria)localStorage.setItem('nag_audit',JSON.stringify(data.auditoria));
+      if(data.configuracoes&&data.configuracoes.tema_escuro!=null)lsS('nag_dark',data.configuracoes.tema_escuro);
+      if(data.usuarios){
+        try{
+          await _db.collection(_COL).doc('nag_auth').set({users:data.usuarios},{merge:false});
+        }catch(e){console.warn('Erro ao restaurar usuários no Firebase:',e)}
+      }
+      auditar('Restaurou backup','Arquivo: '+file.name.replace(/[<>]/g,''));
+    }catch(ex){alert('Erro ao restaurar backup: '+ex.message);return}
+    alert('Backup restaurado com sucesso! A página será recarregada.');
+    location.reload(true);
+  };
+  reader.onerror=function(){alert('Erro ao ler o arquivo');};
+  reader.readAsText(file);
 }
 
 /* ── PDF CONFIG MODAL ── */
