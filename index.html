@@ -1279,6 +1279,7 @@ body.dark .saving-badge{background:rgba(255,255,255,.07)}
   catch(e){window.location.href='login.html';}
 })();
 function nagumoLogout(){
+  auditar('Logout','Usuário: '+(JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}').nome||'Desconhecido'));
   sessionStorage.removeItem('nagumo_auth');
   window.location.href='login.html';
 }
@@ -1375,6 +1376,22 @@ function nagumoLogout(){
   </div>
 </div>
 
+<!-- TRASH OVERLAY -->
+<div class="settings-overlay" id="trash-overlay">
+  <div class="settings-backdrop" onclick="closeTrash()"></div>
+  <div class="settings-panel">
+    <div class="settings-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity="0.7"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      <span class="sh-title">Lixeira</span>
+      <button class="sh-close" onclick="closeTrash()">&#x2715;</button>
+    </div>
+    <div class="settings-body" id="trash-body">
+      <div id="trash-list"></div>
+    </div>
+    <div class="settings-footer">Registros removidos ficam aqui até serem restaurados.</div>
+  </div>
+</div>
+
 <!-- MAIN -->
 <div class="main-content">
 
@@ -1451,6 +1468,10 @@ function nagumoLogout(){
         <button class="btn-action ghost" onclick="setView('cadastro')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Cadastro
+        </button>
+        <button class="btn-action ghost" onclick="openTrash()" title="Lixeira">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          <span id="trash-btn-label">Lixeira</span>
         </button>
         <button class="btn-action teal-btn" id="btn-novo-reg" onclick="openModal(null, selectedCalDate)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1967,8 +1988,10 @@ function openAgendaDayDetail(dateStr,e){
 
 function remRegAndRefreshDay(id,dateStr){
   if(!isAdmin())return;
-  var r=regs.find(x=>x.id==id);if(r)auditar('Removeu agendamento','Fornecedor: '+r.razaoSocial+' | Data: '+r.data+' | Contrato: '+r.tipoContrato);
-  regs=regs.filter(r=>r.id!==id);lsS('nag_reg',regs);
+  var r=regs.find(x=>x.id==id);if(!r)return;
+  if(!confirm('Remover "'+r.razaoSocial+'" ('+r.data+')?\nO registro vai para a lixeira e pode ser restaurado.'))return;
+  if(r)auditar('Removeu agendamento','Fornecedor: '+r.razaoSocial+' | Data: '+r.data+' | Contrato: '+r.tipoContrato);
+  r.deletedAt=Date.now();lsS('nag_reg',regs);
   renderTable();renderStats();renderAgendaCalendar();
   openAgendaDayDetail(dateStr,{currentTarget:null});
 }
@@ -2233,15 +2256,12 @@ function globalSearch(){
 
 /* ── CD VIEW ── */
 function cdFilter(arr){
+  arr = arr.filter(function(r){ return !r.deletedAt; });
   var auth=JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}');
   var cds=auth.cd||[];
-  // Usuário sem CD: não vê nada
   if(auth.role!=='admin'&&cds.length===0)return[];
-  // Sem CD ativo: mostra todos (fallback)
   if(!window.activeCd)return auth.role==='admin'?arr:arr.filter(function(r){return cds.includes(r.cd);});
-  // Admin: filtra pelo CD ativo
   if(auth.role==='admin')return arr.filter(function(r){return r.cd===window.activeCd;});
-  // Não-admin: respeita permissão
   if(!cds.includes(window.activeCd))return[];
   return arr.filter(function(r){return r.cd===window.activeCd;});
 }
@@ -2251,6 +2271,7 @@ function setCdView(cd){
   sessionStorage.setItem('nagumo_cd_view',cd);
   document.querySelectorAll('.cd-toggle-btn').forEach(function(b){b.classList.toggle('active',b.dataset.cd===cd);});
   var hl=document.getElementById('hero-cd-label');
+  auditar('Alternou CD','CD ativo: '+cd);
   var hu=document.getElementById('hero-cd-unit');
   if(hl)hl.textContent=cd;
   if(hu)hu.textContent=cd;
@@ -2259,7 +2280,7 @@ function setCdView(cd){
   if(typeof renderDashboard==='function'&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();
 }
 
-function remReg(id){if(!isAdmin())return;var r=regs.find(x=>x.id==id);if(r)auditar('Removeu agendamento','Fornecedor: '+r.razaoSocial+' | Data: '+r.data+' | Contrato: '+r.tipoContrato);regs=regs.filter(x=>x.id!==id);lsS('nag_reg',regs);renderTable();renderStats();if(agendaView==='cal')renderAgendaCalendar();renderAgendaSepCards();}
+function remReg(id){if(!isAdmin())return;var r=regs.find(x=>x.id==id);if(!r)return;if(!confirm('Remover "'+r.razaoSocial+'" ('+r.data+')?\nO registro vai para a lixeira e pode ser restaurado.'))return;if(r)auditar('Removeu agendamento','Fornecedor: '+r.razaoSocial+' | Data: '+r.data+' | Contrato: '+r.tipoContrato);r.deletedAt=Date.now();lsS('nag_reg',regs);renderTable();renderStats();if(agendaView==='cal')renderAgendaCalendar();renderAgendaSepCards();}
 
 /* ── MODAL ── */
 function openModal(editId, forceDate){
@@ -2727,13 +2748,76 @@ function renderCadastro(){
 function openSettings(){ document.getElementById('settings-overlay').classList.add('open'); }
 function closeSettings(){ document.getElementById('settings-overlay').classList.remove('open'); }
 
+/* ── LIXEIRA ── */
+function openTrash(){
+  renderTrash();
+  document.getElementById('trash-overlay').classList.add('open');
+}
+function closeTrash(){
+  document.getElementById('trash-overlay').classList.remove('open');
+}
+function renderTrash(){
+  var deleted = regs.filter(function(r){ return r.deletedAt; });
+  var lbl = document.getElementById('trash-btn-label');
+  if(lbl) lbl.textContent = deleted.length ? 'Lixeira ('+deleted.length+')' : 'Lixeira';
+  var el = document.getElementById('trash-list');
+  if(!deleted.length){
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--gray-label);font-size:13px">Nenhum registro na lixeira.</div>';
+    return;
+  }
+  el.innerHTML = deleted.sort(function(a,b){return b.deletedAt-a.deletedAt;}).map(function(r){
+    var d = new Date(r.data+'T00:00:00');
+    var ds = d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    var removedAt = new Date(r.deletedAt).toLocaleString('pt-BR');
+    var cls = TIPOS[r.tipoContrato].cls;
+    var label = TIPOS[r.tipoContrato].label;
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--gray-border)">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:600;color:var(--navy)">'+escHtml(r.razaoSocial)+'</div>'+
+        '<div style="font-size:11px;color:var(--gray-label);margin-top:2px">'+ds+' · <span class="contract-badge '+cls+'" style="font-size:10px;padding:1px 6px">'+label+'</span> · Removido: '+removedAt+'</div>'+
+      '</div>'+
+      '<button class="action-btn" onclick="restoreReg('+r.id+')" title="Restaurar" style="background:#dcfce7;border-color:#86efac;color:#15803d;width:30px;height:30px;border-radius:7px;border:1px solid;cursor:pointer;display:flex;align-items:center;justify-content:center">'+
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>'+
+      '</button>'+
+      '<button class="action-btn del" onclick="permanentlyDeleteReg('+r.id+')" title="Excluir permanentemente" style="width:30px;height:30px;border-radius:7px;border:1px solid #fecaca;background:#fef2f2;cursor:pointer;display:flex;align-items:center;justify-content:center">'+
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+
+      '</button>'+
+    '</div>';
+  }).join('');
+}
+function restoreReg(id){
+  var r = regs.find(function(x){ return x.id === id; });
+  if(!r) return;
+  delete r.deletedAt;
+  lsS('nag_reg', regs);
+  auditar('Restaurou agendamento da lixeira','Fornecedor: '+r.razaoSocial+' | Data: '+r.data);
+  renderTrash();
+  renderTable(); renderStats();
+  if(typeof renderAgendaCalendar==='function') renderAgendaCalendar();
+}
+function permanentlyDeleteReg(id){
+  if(!confirm('Excluir permanentemente este registro?\nEsta ação não pode ser desfeita.')) return;
+  var r = regs.find(function(x){ return x.id === id; });
+  if(!r) return;
+  regs = regs.filter(function(x){ return x.id !== id; });
+  lsS('nag_reg', regs);
+  auditar('Removeu permanentemente','Fornecedor: '+(r.razaoSocial||'')+' | Data: '+(r.data||''));
+  renderTrash();
+  renderTable(); renderStats();
+  if(typeof renderAgendaCalendar==='function') renderAgendaCalendar();
+}
+
+document.getElementById('trash-overlay').addEventListener('click',function(e){if(e.target===this)closeTrash();});
+
 function toggleDarkMode(){
   const isDark = document.body.classList.toggle('dark');
   document.getElementById('dark-toggle').classList.toggle('on', isDark);
   lsS('nag_dark', isDark);
+  auditar('Alternou tema','Modo: '+(isDark?'escuro':'claro'));
 }
 
 async function exportData(){
+  auditar('Exportou backup completo','Usuário: '+(JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}').nome||'Desconhecido'));
   var usuarios = null;
   try {
     var snap = await _db.collection(_COL).doc('nag_auth').get();
@@ -2837,6 +2921,7 @@ function confirmGeneratePDF(){
 }
 
 function buildPDF(dateStr,opts){
+  auditar('Gerou relatório PDF','Data: '+dateStr+' | Fornecedores: '+cdFilter(regs).filter(r=>r.data===dateStr).length);
   let items=cdFilter(regs).filter(r=>r.data===dateStr).sort((a,b)=>a.razaoSocial.localeCompare(b.razaoSocial));
   if(opts.filt.length>0)items=items.filter(r=>opts.filt.includes(r.tipoContrato));
   if(!items.length){alert('Nenhum registro com os filtros selecionados.');return;}

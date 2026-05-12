@@ -1,0 +1,27 @@
+# Pasta com repositório git próprio
+REGISTRO PONTO/
+
+# Protótipo de design (não vai para produção)
+design/
+
+# Vault do Obsidian (notas pessoais)
+Marcosann/
+
+# Configuração local do Claude Code
+.claude/
+
+# Graphify — gerado automaticamente
+graphify-out/
+.graphify_*.json
+.graphify_python
+_gfy_*.py
+
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+_backup/
+
+
+_backup/

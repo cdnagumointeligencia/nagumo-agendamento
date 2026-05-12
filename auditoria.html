@@ -192,6 +192,13 @@ td.det{color:var(--label);max-width:300px;overflow:hidden;text-overflow:ellipsis
       <label>Ação</label>
       <select id="filtro-acao" onchange="applyFilters()"><option value="">Todas</option></select>
     </div>
+    <div class="filter-group" style="justify-content:end">
+      <label style="opacity:0">Opções</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border-radius:8px;border:1.5px solid var(--mid);font-size:12px;font-weight:600;color:var(--muted);user-select:none;transition:all .15s;background:var(--white)" id="archive-toggle" onclick="toggleArchive()">
+        <input type="checkbox" id="filtro-arquivados" style="accent-color:var(--teal);width:14px;height:14px">
+        Mostrar arquivados (+2 dias)
+      </label>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -231,6 +238,8 @@ const _COL_AUDIT = "nagumo_auditoria";
 var logs = [];
 var usuarios = new Set();
 var acoes = new Set();
+var mostrarArquivados = false;
+var DOIS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
 
 function fmtDT(iso){
   if(!iso)return'—';
@@ -271,6 +280,19 @@ function populateFilters(){
   aSel.innerHTML='<option value="">Todas</option>'+Array.from(acoes).sort().map(function(a){return'<option value="'+escHtml(a)+'"'+(a===curA?' selected':'')+'>'+escHtml(a)+'</option>';}).join('');
 }
 
+function isArquivado(dataISO){
+  if(!dataISO)return false;
+  return new Date() - new Date(dataISO) > DOIS_DIAS_MS;
+}
+function toggleArchive(){
+  mostrarArquivados = !mostrarArquivados;
+  document.getElementById('filtro-arquivados').checked = mostrarArquivados;
+  var lbl = document.getElementById('archive-toggle');
+  lbl.style.borderColor = mostrarArquivados ? 'var(--teal)' : 'var(--mid)';
+  lbl.style.color = mostrarArquivados ? 'var(--teal-dk)' : 'var(--muted)';
+  lbl.style.background = mostrarArquivados ? 'var(--teal-lt)' : 'var(--white)';
+  applyFilters();
+}
 function applyFilters(){
   var de=document.getElementById('filtro-data-de').value;
   var ate=document.getElementById('filtro-data-ate').value;
@@ -281,6 +303,7 @@ function applyFilters(){
     if(ate&&l.data>ate+'T23:59:59')return false;
     if(userF&&l.usuario!==userF)return false;
     if(acaoF&&l.acao!==acaoF)return false;
+    if(!mostrarArquivados && !de && !ate && isArquivado(l.data))return false;
     return true;
   });
   renderTable(filtered);
@@ -295,11 +318,13 @@ function renderTable(arr){
   tb.innerHTML=arr.map(function(l){
     var cargoCls=l.cargo==='admin'?'badge-admin':'badge-user';
     var cargoLbl=l.cargo==='admin'?'Admin':'Usuário';
+    var arquivado = isArquivado(l.data);
+    var arqBadge = arquivado ? '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;background:#f1f5f9;color:#94a3b8;letter-spacing:.3px">📦 Arquivado</span>' : '';
     return '<tr>'+
-      '<td class="ts">'+fmtDT(l.data)+'</td>'+
+      '<td class="ts">'+fmtDT(l.data)+(arquivado?'<br><span style="font-size:9px;color:#94a3b8">+2 dias</span>':'')+'</td>'+
       '<td><div class="user">'+escHtml(l.usuario||'—')+'</div><div class="email">'+escHtml(l.email||'')+'</div></td>'+
       '<td><span class="badge-role '+cargoCls+'">'+cargoLbl+'</span></td>'+
-      '<td class="acao">'+escHtml(l.acao||'—')+'</td>'+
+      '<td class="acao">'+escHtml(l.acao||'—')+arqBadge+'</td>'+
       '<td class="det">'+escHtml(l.detalhes||'—')+'</td>'+
       '</tr>';
   }).join('');
@@ -308,6 +333,12 @@ function renderTable(arr){
 function renderStats(arr){
   if(!arr)arr=logs;
   var total=arr.length;
+  if(!mostrarArquivados){
+    var arquivados = logs.filter(function(l){return isArquivado(l.data);}).length;
+    if(arquivados>0){
+      document.getElementById('stats-bar').innerHTML+='<div class="stat" style="background:var(--teal-lt);border-color:var(--teal)"><div class="stat-label">ARQUIVADOS</div><div class="stat-val" style="color:var(--teal-dk);font-size:22px">'+arquivados+'</div><div class="stat-desc">registros com +2 dias (ocultos)</div></div>';
+    }
+  }
   var usuariosUnicos=new Set(arr.map(function(l){return l.usuario;})).size;
   var acoesUnicas=new Set(arr.map(function(l){return l.acao;})).size;
   var criacoes=arr.filter(function(l){return l.acao&&l.acao.indexOf('Criou')===0;}).length;

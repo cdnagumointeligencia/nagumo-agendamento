@@ -424,14 +424,28 @@ const _DOC = "nag_auth";
 /* ── Estado global ── */
 let _authData = null;
 
+/* ── Auditoria ── */
+function auditar(acao, detalhes){
+  var auth=JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}');
+  var entry={data:new Date().toISOString(),usuario:auth.nome||'Desconhecido',email:auth.email||'',cargo:auth.role||'',acao:acao,detalhes:detalhes};
+  try{var arr=JSON.parse(localStorage.getItem('nag_audit')||'[]');arr.push(entry);localStorage.setItem('nag_audit',JSON.stringify(arr));}catch(e){}
+  try{_db.collection('nagumo_auditoria').add(entry);}catch(e){}
+}
+
 /* ── Helpers Firestore ── */
+/* SHA-256 hash via Web Crypto API (navegador, sem custo) */
+async function hashSenha(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 async function getAuthData() {
   const snap = await _db.collection(_COL).doc(_DOC).get();
   if (snap.exists) return snap.data();
   return null;
 }
 async function saveAuthData(data) {
-  await _db.collection(_COL).doc(_DOC).set(data);
+  await _db.collection(_COL).doc(_DOC).set(data, { merge: true });
 }
 
 /* ── Toast ── */
@@ -494,6 +508,7 @@ async function saveCode() {
   try {
     _authData.authCode = val;
     await saveAuthData(_authData);
+    auditar('Alterou código de autorização','Novo código: '+val);
     document.getElementById('code-display').textContent = val;
     document.getElementById('code-display').style.display = 'block';
     document.getElementById('code-input').style.display   = 'none';
@@ -604,6 +619,7 @@ async function setCd(email, mode) {
     await saveAuthData(_authData);
     renderAll();
     const label = {CD1:'CD1',CD2:'CD2',BOTH:'CD1 + CD2',NONE:'nenhum CD'};
+    auditar('Alterou acesso CD','Usuário: '+_authData.users[email].nome+' | Email: '+email+' | CDs: '+label[mode]);
     toast(`Acesso de ${_authData.users[email].nome} → ${label[mode]}`);
   } catch(e) {
     toast('Erro ao salvar: '+e.message,'err');
@@ -618,8 +634,9 @@ async function deleteUser(email) {
   if (!confirm(`Remover "${u.nome}" do sistema?\nEsta ação não pode ser desfeita.`)) return;
   try {
     delete _authData.users[email];
-    await saveAuthData(_authData);
+    await _db.collection(_COL).doc(_DOC).update({ [`users.${email}`]: firebase.firestore.FieldValue.delete() });
     renderAll();
+    auditar('Removeu usuário','Nome: '+u.nome+' | Email: '+email+' | Perfil: '+u.role);
     toast(`Usuário ${u.nome} removido.`);
   } catch(e) { toast('Erro: '+e.message,'err'); }
 }
@@ -650,11 +667,12 @@ async function addUser() {
   if (_authData.users[email]) { toast('Este e-mail já está cadastrado.','err'); return; }
 
   try {
-    _authData.users[email] = { nome, email, senha, role, cd };
+    _authData.users[email] = { nome, email, senha: await hashSenha(senha), role, cd };
     if (role === 'admin') _authData.users[email].cd = ['CD1','CD2'];
     await saveAuthData(_authData);
     closeAddModal();
     renderAll();
+    auditar('Criou usuário','Nome: '+nome+' | Email: '+email+' | Perfil: '+role+' | CDs: '+cd.join(' + '));
     toast(`Usuário ${nome} adicionado com sucesso!`);
   } catch(e) { toast('Erro ao salvar: '+e.message,'err'); }
 }
@@ -701,8 +719,9 @@ async function doResetSenha() {
   if (senha !== senha2)     { showAl('As senhas não coincidem.', false); return; }
   if (senha.length < 6)     { showAl('A senha deve ter no mínimo 6 caracteres.', false); return; }
   try {
-    _authData.users[_resetEmail].senha = senha;
+    _authData.users[_resetEmail].senha = await hashSenha(senha);
     await saveAuthData(_authData);
+    auditar('Redefiniu senha','Usuário: '+_authData.users[_resetEmail].nome+' | Email: '+_resetEmail);
     showAl('Senha redefinida com sucesso!', true);
     toast(`Senha de ${_authData.users[_resetEmail].nome} redefinida.`);
     setTimeout(closeResetModal, 1200);

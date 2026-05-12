@@ -196,6 +196,12 @@ const _DOC = "nag_auth";
 const ADMIN = { nome:"Administrador", email:"admin@nagumo.com.br", senha:"Admin@2025", role:"admin", cd:["CD1","CD2"] };
 const CODE_DEFAULT = "NAGUMO2025";
 
+/* SHA-256 hash via Web Crypto API (navegador, sem custo) */
+async function hashSenha(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 async function getAuthData() {
   try {
     const snap = await _db.collection(_COL).doc(_DOC).get();
@@ -204,7 +210,7 @@ async function getAuthData() {
   return null;
 }
 async function saveAuthData(data) {
-  try { await _db.collection(_COL).doc(_DOC).set(data); return true; }
+  try { await _db.collection(_COL).doc(_DOC).set(data, { merge: true }); return true; }
   catch(e) { console.warn('[Auth] escrita:', e.message); return false; }
 }
 
@@ -240,6 +246,12 @@ function setLoading(s,t,b,on) {
   document.getElementById(t).style.display = on?'none':'inline';
   document.getElementById(b).disabled = on;
 }
+function auditar(acao, detalhes){
+  var auth=JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}');
+  var entry={data:new Date().toISOString(),usuario:auth.nome||'Desconhecido',email:auth.email||'',cargo:auth.role||'',acao:acao,detalhes:detalhes};
+  try{var arr=JSON.parse(localStorage.getItem('nag_audit')||'[]');arr.push(entry);localStorage.setItem('nag_audit',JSON.stringify(arr));}catch(e){}
+  try{_db.collection('nagumo_auditoria').add(entry);}catch(e){}
+}
 function setSession(user) {
   sessionStorage.setItem('nagumo_auth', JSON.stringify({
     ok:true, role:user.role, nome:user.nome, email:user.email,
@@ -264,6 +276,7 @@ async function doLogin() {
         if (email===ADMIN.email && senha===ADMIN.senha) {
           showAlert('al-l','ok','Login realizado! Redirecionando…');
           setSession(ADMIN);
+          auditar('Login','Usuário: Administrador | Email: '+ADMIN.email+' | Modo: admin offline');
           setTimeout(()=>{ window.location.href='index.html'; }, 900);
           return;
         }
@@ -271,11 +284,22 @@ async function doLogin() {
       }
     }
     const user = (data.users||{})[email];
-    if (!user)                { showAlert('al-l','err','E-mail não encontrado.'); return; }
-    if (user.senha !== senha) { showAlert('al-l','err','Senha incorreta.'); return; }
+    if (!user)                { auditar('Tentativa de login inválida','Email: '+email+' | Motivo: e-mail não encontrado'); showAlert('al-l','err','E-mail não encontrado.'); return; }
+    const hashed = await hashSenha(senha);
+    if (user.senha !== hashed) {
+      if (user.senha === senha) {
+        user.senha = hashed;
+        data.users[email].senha = hashed;
+        await saveAuthData(data);
+      } else {
+        auditar('Tentativa de login inválida','Email: '+email+' | Motivo: senha incorreta');
+        showAlert('al-l','err','Senha incorreta.'); return;
+      }
+    }
 
     showAlert('al-l','ok','Login realizado! Redirecionando…');
     setSession(user);
+    auditar('Login','Usuário: '+user.nome+' | Email: '+email+' | Perfil: '+user.role);
     setTimeout(()=>{ window.location.href='index.html'; }, 900);
   } catch(e) {
     showAlert('al-l','err','Erro de conexão. Verifique sua internet.');
@@ -303,10 +327,11 @@ async function doCad() {
     if (data.users && data.users[email]) { showAlert('al-c','err','Este e-mail já está cadastrado.'); return; }
     data.users = data.users || {};
     /* Novo usuário começa sem CD — admin define depois em admin-usuarios.html */
-    data.users[email] = { nome, email, senha, role:'usuario', cd:[] };
+    data.users[email] = { nome, email, senha: await hashSenha(senha), role:'usuario', cd:[] };
     const ok = await saveAuthData(data);
     if (!ok) { showAlert('al-c','err','Sem permissão para salvar. Verifique as regras do Firestore.'); return; }
     showAlert('al-c','ok','Cadastro realizado! O administrador irá liberar seu acesso ao CD.');
+    auditar('Autocadastro','Nome: '+nome+' | Email: '+email+' | Perfil: usuario (aguardando liberação de CD)');
     ['c-nome','c-email','c-senha','c-senha2','c-auth'].forEach(id=>{ document.getElementById(id).value=''; });
     setTimeout(()=>go('login'), 2000);
   } catch(e) {
