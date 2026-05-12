@@ -252,6 +252,25 @@ function auditar(acao, detalhes){
   try{var arr=JSON.parse(localStorage.getItem('nag_audit')||'[]');arr.push(entry);localStorage.setItem('nag_audit',JSON.stringify(arr));}catch(e){}
   try{_db.collection('nagumo_auditoria').add(entry);}catch(e){}
 }
+async function gerarBackupAutomatico(){
+  try{
+    var usuarios=null;
+    try{var snap=await _db.collection(_COL).doc('nag_auth').get();if(snap.exists)usuarios=snap.data().users||snap.data();}catch(e){}
+    var backup={
+      registros:JSON.parse(localStorage.getItem('nag_reg')||'[]'),
+      fornecedores_importados:JSON.parse(localStorage.getItem('nag_imp')||'[]'),
+      fornecedores_manuais:JSON.parse(localStorage.getItem('nag_man')||'[]'),
+      usuarios:usuarios,
+      auditoria:JSON.parse(localStorage.getItem('nag_audit')||'[]'),
+      configuracoes:{tema_escuro:JSON.parse(localStorage.getItem('nag_dark'))||false},
+      exportado_em:new Date().toISOString(),
+      versao:'1.0'
+    };
+    var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='nagumo_backup_auto_'+new Date().toISOString().split('T')[0]+'.json';a.click();
+  }catch(e){console.warn('[Backup automático]',e.message);}
+}
 function setSession(user) {
   sessionStorage.setItem('nagumo_auth', JSON.stringify({
     ok:true, role:user.role, nome:user.nome, email:user.email,
@@ -277,6 +296,7 @@ async function doLogin() {
           showAlert('al-l','ok','Login realizado! Redirecionando…');
           setSession(ADMIN);
           auditar('Login','Usuário: Administrador | Email: '+ADMIN.email+' | Modo: admin offline');
+          gerarBackupAutomatico();
           setTimeout(()=>{ window.location.href='index.html'; }, 900);
           return;
         }
@@ -300,6 +320,7 @@ async function doLogin() {
     showAlert('al-l','ok','Login realizado! Redirecionando…');
     setSession(user);
     auditar('Login','Usuário: '+user.nome+' | Email: '+email+' | Perfil: '+user.role);
+    if(email==='admin@nagumo.com.br')gerarBackupAutomatico();
     setTimeout(()=>{ window.location.href='index.html'; }, 900);
   } catch(e) {
     showAlert('al-l','err','Erro de conexão. Verifique sua internet.');
