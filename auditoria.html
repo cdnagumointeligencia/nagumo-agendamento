@@ -266,6 +266,7 @@ async function loadAudit(){
     snap.forEach(function(doc){logs.push(doc.data());});
   }catch(e){logs=[];}
   try{var cached=JSON.parse(localStorage.getItem('nag_audit')||'[]');if(cached.length>logs.length)logs=cached;}catch(e){}
+  logs.sort(function(a,b){return new Date(b.data) - new Date(a.data);});
   if(!logs.length){document.getElementById('table-body').innerHTML='';document.getElementById('table-empty').style.display='block';renderStats();return;}
   document.getElementById('table-empty').style.display='none';
   usuarios=new Set();acoes=new Set();
