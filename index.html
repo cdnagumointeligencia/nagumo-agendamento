@@ -1794,12 +1794,28 @@ const _COL = "nagumo_agenda";
 /* ── ls: lê do localStorage (cache local) ── */
 function ls(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v!==null?v:d;}catch(e){return d;}}
 
-/* ── lsS: salva localmente E sincroniza com Firestore ── */
-async function lsS(k,v){
+/* ── mergeArrays: mescla dois arrays preservando registros únicos por id/nome ── */
+function mergeArrays(a,b){
+  var sample=(a&&a.length)?a:b;
+  var key=(sample&&sample.length&&sample[0].id!==undefined)?'id':'nome';
+  var map={};(a||[]).forEach(function(x){map[x[key]]=x;});(b||[]).forEach(function(x){map[x[key]]=x;});
+  return Object.values(map);
+}
+
+/* ── lsS: salva localmente E sincroniza com Firestore (com merge) ── */
+async function lsS(k,v,skipMerge){
   const _v=Date.now();
   try{localStorage.setItem(k,JSON.stringify(v));localStorage.setItem(k+'_ver',String(_v));}catch(e){}
   for(let a=0;a<3;a++){
-    try{await _db.collection(_COL).doc(k).set({payload:v,_updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_clientVersion:_v},{merge:true});_setSyncStatus('ok');return;}catch(e){if(a<2)await new Promise(r=>setTimeout(r,1000*Math.pow(2,a)));}
+    try{
+      var toSave=v;
+      if(!skipMerge)try{
+        var snap=await _db.collection(_COL).doc(k).get();
+        if(snap.exists&&snap.data().payload)toSave=mergeArrays(v,snap.data().payload);
+        if(toSave!==v)try{localStorage.setItem(k,JSON.stringify(toSave));}catch(e){}
+      }catch(e){}
+      await _db.collection(_COL).doc(k).set({payload:toSave,_updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_clientVersion:_v},{merge:true});_setSyncStatus('ok');return;
+    }catch(e){if(a<2)await new Promise(r=>setTimeout(r,1000*Math.pow(2,a)));}
   }
   _setSyncStatus('err');
 }
@@ -1823,21 +1839,16 @@ async function _loadFromFirestore(){
       if(!snap.exists)continue;
       const data=snap.data();
       if(data.payload===undefined)continue;
+      const localData=JSON.parse(localStorage.getItem(k))||[];
+      const fbPayload=data.payload||[];
       const localVer=parseInt(localStorage.getItem(k+'_ver')||'0',10);
       const fbVer=data._clientVersion||0;
-      if(fbVer>localVer){
-        localStorage.setItem(k,JSON.stringify(data.payload));
-        localStorage.setItem(k+'_ver',String(fbVer));
-      }else if(localVer>fbVer){
-        const localData=JSON.parse(localStorage.getItem(k));
-        if(localData!=null)await _db.collection(_COL).doc(k).set({payload:localData,_updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_clientVersion:localVer},{merge:true});
-      }else if(fbVer===0&&localVer===0){
-        const localData=JSON.parse(localStorage.getItem(k));
-        if(localData==null||localData===undefined||(Array.isArray(localData)&&localData.length===0)){
-          localStorage.setItem(k,JSON.stringify(data.payload));
-        }else{
-          await _db.collection(_COL).doc(k).set({payload:localData,_updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_clientVersion:Date.now()},{merge:true}).catch(function(){});
-        }
+      const merged=mergeArrays(localData,fbPayload);
+      localStorage.setItem(k,JSON.stringify(merged));
+      var newVer=Math.max(localVer,fbVer)||Date.now();
+      localStorage.setItem(k+'_ver',String(newVer));
+      if(JSON.stringify(merged)!==JSON.stringify(fbPayload)){
+        await _db.collection(_COL).doc(k).set({payload:merged,_updatedAt:firebase.firestore.FieldValue.serverTimestamp(),_clientVersion:newVer},{merge:true}).catch(function(){});
       }
     }catch(e){}
   }
@@ -2875,9 +2886,9 @@ function importBackup(file){
       regs=data.registros;
       imported=data.fornecedores_importados;
       manual=data.fornecedores_manuais||[];
-      await lsS('nag_reg',regs);
-      await lsS('nag_imp',imported);
-      await lsS('nag_man',manual);
+      await lsS('nag_reg',regs,true);
+      await lsS('nag_imp',imported,true);
+      await lsS('nag_man',manual,true);
       if(data.auditoria)localStorage.setItem('nag_audit',JSON.stringify(data.auditoria));
       if(data.configuracoes&&data.configuracoes.tema_escuro!=null)lsS('nag_dark',data.configuracoes.tema_escuro);
       if(data.usuarios){
