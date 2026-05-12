@@ -2482,6 +2482,7 @@ function registrarMais(){
   renderTable();
   renderStats();
   if(agendaView==='cal')renderAgendaCalendar();
+  if(agendaView==='cal' && selectedCalDate) openAgendaDayDetail(selectedCalDate, {currentTarget:null});
   openModal();
 }
 
@@ -2520,6 +2521,7 @@ function registrar(){
   renderTable();
   renderStats();
   if(agendaView==='cal')renderAgendaCalendar();
+  if(agendaView==='cal' && selectedCalDate) openAgendaDayDetail(selectedCalDate, {currentTarget:null});
 }
 
 /* ── DASHBOARD ── */
