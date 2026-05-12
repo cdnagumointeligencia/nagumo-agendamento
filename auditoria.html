@@ -127,8 +127,10 @@ td.det{color:var(--label);max-width:300px;overflow:hidden;text-overflow:ellipsis
 <script>
 (function(){
   var s=sessionStorage.getItem('nagumo_auth');
-  if(!s||!JSON.parse(s).ok||JSON.parse(s).role!=='admin'){
-    window.location.href='login.html';return;
+  if(!s) { window.location.href='login.html';return; }
+  var p=JSON.parse(s);
+  if(!p.ok||p.role!=='admin'||p.email!=='admin@nagumo.com.br'){
+    window.location.href='index.html';return;
   }
 })();
 </script>

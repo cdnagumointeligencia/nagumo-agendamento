@@ -2245,7 +2245,10 @@ function auditar(acao, detalhes){
   try{_db.collection('nagumo_auditoria').add(entry);}catch(e){}
 }
 function isAdmin(){
-  try{return JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}').role==='admin';}
+  try{
+    var a=JSON.parse(sessionStorage.getItem('nagumo_auth')||'{}');
+    return a.role==='admin' && a.email==='admin@nagumo.com.br';
+  }
   catch(e){return false;}
 }
 function globalSearch(){
@@ -3123,7 +3126,7 @@ let dashView='charts'; // escopo global — usado por renderDashboard/setDashVie
         adminBtn.onmouseout=function(){this.style.background='rgba(70,208,209,.1)';};
         var tbRight2=document.querySelector('.topbar-right');
         if(tbRight2){var sairBtn2=tbRight2.querySelector('button[onclick="nagumoLogout()"]');if(sairBtn2)tbRight2.insertBefore(adminBtn,sairBtn2);}
-        // Botão "Auditoria" para admin
+        // Botão "Auditoria" só para admin master
         var auditBtn2=document.createElement('a');
         auditBtn2.href='auditoria.html';
         auditBtn2.style.cssText='display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;border:1px solid rgba(246,0,50,.3);background:rgba(246,0,50,.1);color:#F60032;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;letter-spacing:.2px;transition:.15s;';
